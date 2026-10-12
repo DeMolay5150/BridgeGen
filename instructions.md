@@ -25,4 +25,5 @@
   - Surfaces: `bg-background` (slate-950), `bg-card` (slate-900), `border-border` (slate-800/80), `text-muted-foreground` (slate-400)
   - Signals: `text-positive` / `bg-positive/10` (emerald), `text-caution` / `bg-caution/10` (amber), `text-metric` / `bg-metric/10` (cyan), `text-critical` / `bg-critical/10` (rose)
   - Charts: `chart-1`…`chart-5` map to metric, positive, caution, critical, slate-400
+- **Charts:** Recharts 3 via shadcn's `ChartContainer` (`components/ui/chart.tsx`). Give the container an explicit height (e.g. `aspect-auto h-80`); colour marks with the CSS variables (`var(--metric)`, `var(--chart-5)`).
 - **Fonts:** Geist Sans (`font-sans`, `font-heading`) and Geist Mono (`font-mono`, use for figures and labels).

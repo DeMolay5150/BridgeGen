@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { simulate } from "@/lib/simulator/engine";
 import { useSimulatorStore } from "@/lib/simulator/store";
 import { BaselinePanel } from "./baseline-panel";
+import { DecisionMatrix } from "./decision-matrix";
 import { ResultsPanel } from "./results-panel";
 import { ScenarioControls } from "./scenario-controls";
 
@@ -41,6 +42,8 @@ export function FlightSimulator() {
           <ResultsPanel result={result} />
         </div>
       </div>
+
+      <DecisionMatrix />
     </div>
   );
 }
