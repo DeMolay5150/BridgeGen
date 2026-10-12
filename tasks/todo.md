@@ -22,7 +22,11 @@
   - $ at risk = EV × 30% × score/100, itemized "recover $X by fixing"; demo company 78/100 → $22.5M
   - Cascades: risk signal in simulator (caution ≥30, critical ≥60); resilience × (1 − 0.5 × score/100) in the matrix
   - Model in `lib/governance/model.ts` (9 tests) + cascade tests in engine/alignment suites
-- [ ] Task 2.4: Implement "Fork the Future" side-by-side branch comparison
+- [x] Task 2.4: Implement "Fork the Future" side-by-side branch comparison
+  - Route `/fork`: two branches (Today / Your scenario / preset + "Fix governance"), shared growth & cash-conversion assumptions
+  - Yearly projection (`lib/projection/model.ts`): FCF pays down debt then dividends; shortfalls borrowed; governance crisis odds compound at 8% × score/100 per year
+  - Shareholder value line chart, who's-ahead strip at 1/3/5/10y, horizon detail table
+  - 18 Vitest tests; demo: fixing governance is worth +$20.3M by year 10, a dividend recap trails Today by $12.4M
 
 ## Phase 3: Governance & Stress-Testing
 - [ ] Task 3.1: Build multi-stakeholder "Decision Room" (Founder vs Heir vs Board views)
