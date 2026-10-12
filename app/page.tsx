@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const signals = [
@@ -31,7 +32,9 @@ export default function Home() {
           ))}
         </ul>
         <div className="mt-10 flex flex-wrap gap-3">
-          <Button size="lg">Run a simulation</Button>
+          <Button size="lg" nativeButton={false} render={<Link href="/simulator" />}>
+            Run a simulation
+          </Button>
           <Button size="lg" variant="outline">
             Explore scenarios
           </Button>

@@ -84,5 +84,6 @@ pnpm is pinned via `packageManager` in package.json. If `pnpm` is not on PATH, p
 - Dev Server: `pnpm dev`
 - Type Check: `pnpm type-check` (runs `next typegen` first so route types like `LayoutProps` exist)
 - Linting: `pnpm lint`
+- Unit Tests: `pnpm test` (Vitest; pure engine logic lives in `lib/`, tests sit beside it as `*.test.ts`)
 - Production Build: `pnpm build`
 - Git Commit: `git add . && git commit -m "feat: [description]"`

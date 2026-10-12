@@ -6,7 +6,12 @@
 - [x] Task 1.3: Set up shadcn/ui component library with "Quiet Luxury" dark theme
 
 ## Phase 2: Decision Laboratory Engine
-- [ ] Task 2.1: Build Capital Allocation Flight Simulator with interactive sliders
+- [x] Task 2.1: Build Capital Allocation Flight Simulator with interactive sliders
+  - Route `/simulator`; editable demo company baseline (revenue, EBITDA, multiple, debt, rate, founder %)
+  - Levers: debt leverage 0–6x, equity transfer 0–100%, multiple shock ±40%, outside CEO (cost + EBITDA uplift)
+  - Outputs: EV, equity value, dividend recap / capital required, interest coverage, ownership split, risk signals
+  - Pure engine `lib/simulator/engine.ts` (22 Vitest tests); inputs in Zustand store, results derived via `simulate()`
+  - Out of scope: taxes, discounting, multi-year projections (2.4), governance scoring (2.3)
 - [ ] Task 2.2: Implement "Economics vs. Alignment" dual-matrix chart
 - [ ] Task 2.3: Build "Governance Debt" calculation module
 - [ ] Task 2.4: Implement "Fork the Future" side-by-side branch comparison

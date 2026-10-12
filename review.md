@@ -9,3 +9,4 @@ STATUS: PENDING
 - [x] TypeScript strict mode verified
 - [x] GitHub repository linked & initial commit made
 - [ ] Staff Engineer workflow protocols active
+- [x] Simulator engine unit-tested (Vitest, incl. hostile-input sweeps)
