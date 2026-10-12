@@ -17,3 +17,12 @@
   - Amber (`text-amber-400` / `bg-amber-500/10`): Caution, perception gap, governance debt
   - Cyan (`text-cyan-400` / `bg-cyan-500/10`): Metrics, financial figures, data indicators
   - Rose (`text-rose-400` / `bg-rose-500/10`): Critical risk, red team failure points
+
+## Theme Implementation (`app/globals.css`)
+- **Dark-only:** tokens are defined once on `:root`; `<html>` carries the `dark` class so shadcn `dark:` variants always apply. No light theme.
+- **shadcn/ui:** `base-nova` style on Base UI primitives (`@base-ui/react`), configured in `components.json`. Add components with `pnpm dlx shadcn@latest add <name>`. Class merging uses the `cn` package (re-exported from `@/lib/utils`).
+- **Prefer semantic tokens over raw palette classes:**
+  - Surfaces: `bg-background` (slate-950), `bg-card` (slate-900), `border-border` (slate-800/80), `text-muted-foreground` (slate-400)
+  - Signals: `text-positive` / `bg-positive/10` (emerald), `text-caution` / `bg-caution/10` (amber), `text-metric` / `bg-metric/10` (cyan), `text-critical` / `bg-critical/10` (rose)
+  - Charts: `chart-1`…`chart-5` map to metric, positive, caution, critical, slate-400
+- **Fonts:** Geist Sans (`font-sans`, `font-heading`) and Geist Mono (`font-mono`, use for figures and labels).
