@@ -148,6 +148,37 @@ describe("simulate: outside CEO", () => {
   });
 });
 
+describe("simulate: governance debt", () => {
+  const governanceSignal = (score: number) =>
+    simulate(base, neutral, score).signals.find((s) => s.id === "governance-debt");
+
+  it("prices governance debt against enterprise value", () => {
+    expect(simulate(base, neutral, 78).governanceDebt).toBeCloseTo(22.464);
+    expect(simulate(base, neutral).governanceDebt).toBe(0);
+  });
+
+  it("flags governance debt as caution from 30 and critical from 60", () => {
+    expect(governanceSignal(29)).toBeUndefined();
+    expect(governanceSignal(30)?.severity).toBe("caution");
+    expect(governanceSignal(59)?.severity).toBe("caution");
+    expect(governanceSignal(60)?.severity).toBe("critical");
+    expect(governanceSignal(78)?.detail).toContain("$22.5M");
+  });
+
+  it("replaces the all-clear signal when governance is weak", () => {
+    expect(signalIds(simulate(base, neutral, 78))).toEqual(["governance-debt"]);
+  });
+
+  it("clamps hostile governance scores", () => {
+    for (const g of [Number.NaN, -Infinity, -5, 500, Infinity]) {
+      const r = simulate(base, neutral, g);
+      expect(Number.isFinite(r.governanceDebt)).toBe(true);
+      expect(r.governanceDebt).toBeGreaterThanOrEqual(0);
+      expect(r.governanceDebt).toBeLessThanOrEqual(28.8 + 1e-9);
+    }
+  });
+});
+
 describe("simulate: hostile inputs", () => {
   const extremes = [Number.NaN, -Infinity, -1e12, -1, 0, 0.5, 1e12, Infinity];
   const numericBaseline = Object.keys(base) as (keyof Baseline)[];

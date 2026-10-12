@@ -1,3 +1,4 @@
+import { governanceDebtValue } from "../governance/model";
 import { BASELINE_LIMITS, SCENARIO_RANGES, clamp } from "./defaults";
 import { formatMoney, formatMultiple } from "./format";
 import type {
@@ -14,6 +15,9 @@ export const COVERAGE_CAUTION = 3;
 /** Debt / EBITDA above this is critical; at or above CAUTION is a warning. */
 const LEVERAGE_CRITICAL = 5;
 const LEVERAGE_CAUTION = 4;
+/** Governance Debt Score at or above CRITICAL is critical; at or above CAUTION is a warning. */
+export const GOVERNANCE_CRITICAL = 60;
+export const GOVERNANCE_CAUTION = 30;
 
 function sanitizeBaseline(baseline: Baseline): Baseline {
   return {
@@ -49,9 +53,15 @@ function splitBy(ownership: Holders, amount: number): Holders {
  * Runs one scenario against a baseline company. Pure and deterministic:
  * the same inputs always produce the same outputs, and every output is finite.
  */
-export function simulate(rawBaseline: Baseline, rawScenario: Scenario): SimulationResult {
+export function simulate(
+  rawBaseline: Baseline,
+  rawScenario: Scenario,
+  /** Governance Debt Score (0–100) from `scoreGovernance`; 0 means no governance gaps. */
+  governanceScore = 0,
+): SimulationResult {
   const baseline = sanitizeBaseline(rawBaseline);
   const scenario = sanitizeScenario(rawScenario);
+  const governance = clamp(governanceScore, { min: 0, max: 100 });
 
   const adjustedEbitda = scenario.outsideCeo
     ? baseline.ebitda * (1 + scenario.ceoUplift) - scenario.ceoCost
@@ -79,12 +89,16 @@ export function simulate(rawBaseline: Baseline, rawScenario: Scenario): Simulati
   const interestCoverage = interestExpense > 0 ? adjustedEbitda / interestExpense : null;
   const debtToEbitda = adjustedEbitda > 0 ? totalDebt / adjustedEbitda : null;
 
+  const governanceDebt = governanceDebtValue(enterpriseValue, governance);
+
   const signals = assessRisks({
     adjustedEbitda,
     equityValue,
     interestCoverage,
     debtToEbitda,
     ownership,
+    governance,
+    governanceDebt,
   });
 
   return {
@@ -101,6 +115,7 @@ export function simulate(rawBaseline: Baseline, rawScenario: Scenario): Simulati
     interestExpense,
     interestCoverage,
     debtToEbitda,
+    governanceDebt,
     signals,
   };
 }
@@ -111,6 +126,8 @@ function assessRisks(r: {
   interestCoverage: number | null;
   debtToEbitda: number | null;
   ownership: Holders;
+  governance: number;
+  governanceDebt: number;
 }): RiskSignal[] {
   const signals: RiskSignal[] = [];
 
@@ -158,6 +175,16 @@ function assessRisks(r: {
       severity: "caution",
       title: "Control shifts to the next generation",
       detail: "Heirs now hold more equity than the founder. Confirm governance and voting rights reflect the new balance.",
+    });
+  }
+
+  if (r.governance >= GOVERNANCE_CAUTION) {
+    const critical = r.governance >= GOVERNANCE_CRITICAL;
+    signals.push({
+      id: "governance-debt",
+      severity: critical ? "critical" : "caution",
+      title: critical ? "Governance debt critical" : "Governance debt building",
+      detail: `Governance scores ${Math.round(r.governance)}/100; informal authority, board and voting rules put ${formatMoney(r.governanceDebt)} of value at risk.`,
     });
   }
 

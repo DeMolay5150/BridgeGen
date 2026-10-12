@@ -62,6 +62,8 @@ const PROFESSIONALIZATION = { withCeo: 100, without: 40 };
 const COVERAGE_RAMP = { zeroAt: 1, fullAt: 6 };
 const LEVERAGE_RAMP = { zeroAt: 6, fullAt: 2 };
 const DISAGREEMENT_PENALTY = 0.5;
+/** At a Governance Debt Score of 100, resilience is halved. */
+const GOVERNANCE_RESILIENCE_DRAG = 0.5;
 const ECONOMICS_WEIGHTS = { value: 0.6, resilience: 0.4 };
 
 export function subScores(
@@ -69,6 +71,7 @@ export function subScores(
   scenario: Scenario,
   result: SimulationResult,
   today: SimulationResult,
+  governanceScore = 0,
 ): SubScores {
   const value =
     today.enterpriseValue > 0
@@ -77,17 +80,20 @@ export function subScores(
         ? 100
         : 50;
 
+  // Informal governance makes the same balance sheet more fragile.
+  const governanceDrag = 1 - (GOVERNANCE_RESILIENCE_DRAG * pct(governanceScore)) / 100;
   const resilience =
     result.equityValue <= 0 || result.adjustedEbitda <= 0
       ? 0
-      : Math.min(
-          result.interestCoverage === null
-            ? 100
-            : ramp(result.interestCoverage, COVERAGE_RAMP.zeroAt, COVERAGE_RAMP.fullAt),
-          result.debtToEbitda === null
-            ? 0
-            : ramp(result.debtToEbitda, LEVERAGE_RAMP.zeroAt, LEVERAGE_RAMP.fullAt),
-        );
+      : governanceDrag *
+          Math.min(
+            result.interestCoverage === null
+              ? 100
+              : ramp(result.interestCoverage, COVERAGE_RAMP.zeroAt, COVERAGE_RAMP.fullAt),
+            result.debtToEbitda === null
+              ? 0
+              : ramp(result.debtToEbitda, LEVERAGE_RAMP.zeroAt, LEVERAGE_RAMP.fullAt),
+          );
 
   const liquidity =
     today.equityValue > 0 ? pct(50 + (100 * result.netDistribution) / today.equityValue) : 50;
@@ -138,10 +144,15 @@ function supportFor(id: StakeholderId, scores: SubScores): number {
 }
 
 /** Scores one scenario on both matrix axes. Pure; always returns values in 0–100. */
-export function scoreScenario(baseline: Baseline, scenario: Scenario): MatrixScore {
+export function scoreScenario(
+  baseline: Baseline,
+  scenario: Scenario,
+  /** Governance Debt Score (0–100); drags resilience down. */
+  governanceScore = 0,
+): MatrixScore {
   const result = simulate(baseline, scenario);
   const today = simulate(baseline, neutralScenario(baseline));
-  const scores = subScores(baseline, scenario, result, today);
+  const scores = subScores(baseline, scenario, result, today, governanceScore);
 
   const stakeholders = (Object.keys(STAKEHOLDER_WEIGHTS) as StakeholderId[]).map((id) => ({
     id,

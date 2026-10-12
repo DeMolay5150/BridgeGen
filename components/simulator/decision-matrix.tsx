@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/chart";
 import { scoreScenario, type MatrixScore } from "@/lib/simulator/alignment";
-import { useSimulatorStore } from "@/lib/simulator/store";
+import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { STRATEGIES, strategyScenario, type Strategy } from "@/lib/simulator/strategies";
 import type { Severity } from "@/lib/simulator/types";
 import { cn } from "@/lib/utils";
@@ -90,16 +90,20 @@ function MatrixTooltip({ active, payload }: { active?: boolean; payload?: { payl
 export function DecisionMatrix() {
   const baseline = useSimulatorStore((s) => s.baseline);
   const scenario = useSimulatorStore((s) => s.scenario);
+  const governanceScore = useSimulatorStore(selectGovernanceScore);
   const setScenario = useSimulatorStore((s) => s.setScenario);
 
-  const current: MatrixScore = useMemo(() => scoreScenario(baseline, scenario), [baseline, scenario]);
+  const current: MatrixScore = useMemo(
+    () => scoreScenario(baseline, scenario, governanceScore),
+    [baseline, scenario, governanceScore],
+  );
   const strategies = useMemo(
     () =>
       STRATEGIES.map((strategy) => ({
         strategy,
-        score: scoreScenario(baseline, strategyScenario(baseline, strategy)),
+        score: scoreScenario(baseline, strategyScenario(baseline, strategy), governanceScore),
       })),
-    [baseline],
+    [baseline, governanceScore],
   );
 
   const load = (strategy: Strategy) => setScenario(strategyScenario(baseline, strategy));

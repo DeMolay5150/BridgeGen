@@ -17,7 +17,11 @@
   - Alignment derived from levers: Founder / Next-gen heir / Board / Lender support (weights in `lib/simulator/alignment.ts`), consensus = mean − 0.5 × spread
   - Plots live scenario, Today and 4 strategy presets (`lib/simulator/strategies.ts`); click a dot or button to load it
   - 10 Vitest tests (hand-calculated presets, monotonicity, 0–100 bounds)
-- [ ] Task 2.3: Build "Governance Debt" calculation module
+- [x] Task 2.3: Build "Governance Debt" calculation module
+  - Route `/governance` + site nav; 9 weighted items across authority / board / voting → score 0–100
+  - $ at risk = EV × 30% × score/100, itemized "recover $X by fixing"; demo company 78/100 → $22.5M
+  - Cascades: risk signal in simulator (caution ≥30, critical ≥60); resilience × (1 − 0.5 × score/100) in the matrix
+  - Model in `lib/governance/model.ts` (9 tests) + cascade tests in engine/alignment suites
 - [ ] Task 2.4: Implement "Fork the Future" side-by-side branch comparison
 
 ## Phase 3: Governance & Stress-Testing

@@ -73,5 +73,7 @@ export interface SimulationResult {
   interestCoverage: number | null;
   /** Total debt / adjusted EBITDA; null when adjusted EBITDA is not positive. */
   debtToEbitda: number | null;
+  /** Value at risk from governance gaps (USD millions); 0 when no score is supplied. */
+  governanceDebt: number;
   signals: RiskSignal[];
 }

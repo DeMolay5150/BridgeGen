@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { parseNumber } from "@/lib/parse-number";
 import { BASELINE_LIMITS, clamp } from "@/lib/simulator/defaults";
 import { useSimulatorStore } from "@/lib/simulator/store";
 import type { Baseline } from "@/lib/simulator/types";
@@ -26,14 +27,6 @@ const FIELDS: FieldSpec[] = [
 /** Percent fields are edited as whole percentages but stored as fractions. */
 const toDisplay = (value: number, unit: FieldSpec["unit"]) =>
   String(unit === "%" ? Math.round(value * 10_000) / 100 : value);
-
-/** Accepts pasted values like "$12,000,000" → 12000000 or "8%" → 8; null if unparseable. */
-function parseNumber(text: string): number | null {
-  const cleaned = text.replace(/[$,%\sx]/gi, "");
-  if (cleaned === "" || cleaned === "-" || cleaned === ".") return null;
-  const value = Number(cleaned);
-  return Number.isFinite(value) ? value : null;
-}
 
 function BaselineField({ spec }: { spec: FieldSpec }) {
   const id = useId();

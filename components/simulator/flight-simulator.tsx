@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { simulate } from "@/lib/simulator/engine";
-import { useSimulatorStore } from "@/lib/simulator/store";
+import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { BaselinePanel } from "./baseline-panel";
 import { DecisionMatrix } from "./decision-matrix";
 import { ResultsPanel } from "./results-panel";
@@ -13,8 +13,12 @@ import { ScenarioControls } from "./scenario-controls";
 export function FlightSimulator() {
   const baseline = useSimulatorStore((s) => s.baseline);
   const scenario = useSimulatorStore((s) => s.scenario);
+  const governanceScore = useSimulatorStore(selectGovernanceScore);
   const reset = useSimulatorStore((s) => s.reset);
-  const result = useMemo(() => simulate(baseline, scenario), [baseline, scenario]);
+  const result = useMemo(
+    () => simulate(baseline, scenario, governanceScore),
+    [baseline, scenario, governanceScore],
+  );
 
   return (
     <div className="grid gap-8">

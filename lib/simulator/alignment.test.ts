@@ -5,6 +5,7 @@ import { STRATEGIES, strategyScenario } from "./strategies";
 import type { Baseline, Scenario } from "./types";
 
 const base = DEMO_BASELINE;
+const neutral = neutralScenario(base);
 const score = (scenario: Partial<Scenario> = {}, baseline: Baseline = base) =>
   scoreScenario(baseline, { ...neutralScenario(baseline), ...scenario });
 const supports = (s: ReturnType<typeof score>) =>
@@ -72,6 +73,33 @@ describe("scoreScenario: demo company", () => {
   it("drops resilience to zero when equity goes underwater", () => {
     const s = score({ leverage: 6, multipleShock: -0.4 });
     expect(s.subScores.resilience).toBe(0);
+  });
+});
+
+describe("scoreScenario: governance debt cascade", () => {
+  it("drags today's resilience, economics and consensus down at the demo score of 78", () => {
+    const s = scoreScenario(base, neutral, 78);
+    const h = supports(s);
+    expect(s.subScores.resilience).toBeCloseTo(61); // 100 × (1 − 0.5 × 0.78)
+    expect(h.founder).toBeCloseTo(74.15);
+    expect(h.nextGen).toBeCloseTo(27.2);
+    expect(h.board).toBeCloseTo(52.4);
+    expect(h.lender).toBeCloseTo(58.8);
+    expect(s.economics).toBeCloseTo(54.4);
+    expect(s.alignment).toBeCloseTo(29.6625);
+  });
+
+  it("leaves scores unchanged at a governance score of 0", () => {
+    expect(scoreScenario(base, neutral, 0)).toEqual(scoreScenario(base, neutral));
+  });
+
+  it("never raises economics as governance debt grows", () => {
+    let previous = Infinity;
+    for (let g = 0; g <= 100; g += 10) {
+      const { economics } = scoreScenario(base, neutral, g);
+      expect(economics).toBeLessThanOrEqual(previous + 1e-9);
+      previous = economics;
+    }
   });
 });
 
