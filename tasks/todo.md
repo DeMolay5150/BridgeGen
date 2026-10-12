@@ -1,7 +1,7 @@
 # BridgeGen Implementation Roadmap
 
 ## Phase 1: Environment & Workspace Setup
-- [ ] Task 1.1: Initialize Next.js 14 app with TypeScript, Tailwind CSS, and App Router
+- [x] Task 1.1: Initialize Next.js 16 app with TypeScript, Tailwind CSS, and App Router (upgraded from 14: end-of-life with unpatched critical CVEs)
 - [ ] Task 1.2: Configure `CLAUDE.md`, state file connectors, and Git repository
 - [ ] Task 1.3: Set up shadcn/ui component library with "Quiet Luxury" dark theme
 

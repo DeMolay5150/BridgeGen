@@ -14,7 +14,7 @@ Build and maintain BridgeGen using a lean, reliable multi-agent system with clea
 <context>
 - Primary Agent CLI / Orchestrator: Claude Code / OmniRoute
 - Workspace State Framework: CLAUDE.md, goal.md, instructions.md, output.md, memory.md, review.md, tasks/todo.md, tasks/lessons.md
-- Tech Stack: Next.js 14 (App Router), TypeScript, Tailwind CSS, Supabase (PostgreSQL + RLS), Vercel
+- Tech Stack: Next.js 16 (App Router), TypeScript, Tailwind CSS v4, Supabase (PostgreSQL + RLS), Vercel
 - MCP Tools: Filesystem, GitHub, Playwright, Graphify, Firecrawl
 </context>
 
@@ -76,9 +76,13 @@ Before declaring any task complete, ask yourself:
 ## Core Project Imports
 @./goal.md
 @./instructions.md
+@./AGENTS.md
 
 ## Development Commands
+pnpm is pinned via `packageManager` in package.json. If `pnpm` is not on PATH, prefix commands with `corepack` (e.g. `corepack pnpm dev`).
+- Install: `pnpm install`
 - Dev Server: `pnpm dev`
-- Type Check: `pnpm type-check`
+- Type Check: `pnpm type-check` (runs `next typegen` first so route types like `LayoutProps` exist)
 - Linting: `pnpm lint`
+- Production Build: `pnpm build`
 - Git Commit: `git add . && git commit -m "feat: [description]"`

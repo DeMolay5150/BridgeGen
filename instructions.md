@@ -1,8 +1,9 @@
 # Technical Stack & Design System Guardrails
 
 ## Technology Stack
-- **Framework:** Next.js 14 (App Router), React, TypeScript (Strict Mode)
-- **Styling & UI:** Tailwind CSS, shadcn/ui components, Lucide icons
+- **Framework:** Next.js 16 (App Router, Turbopack), React 19, TypeScript (Strict Mode)
+- **Styling & UI:** Tailwind CSS v4 (CSS-first config in `app/globals.css`, no `tailwind.config`), shadcn/ui components, Lucide icons
+- **Package Manager:** pnpm (pinned via `packageManager` in package.json)
 - **State Management & Visualization:** Zustand, Recharts / Tremor for dynamic scenario graphics
 - **Database & Auth:** Supabase (PostgreSQL with Row-Level Security)
 - **Deployment & Infra:** Vercel (Connected via GitHub)
