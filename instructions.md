@@ -1,0 +1,18 @@
+# Technical Stack & Design System Guardrails
+
+## Technology Stack
+- **Framework:** Next.js 14 (App Router), React, TypeScript (Strict Mode)
+- **Styling & UI:** Tailwind CSS, shadcn/ui components, Lucide icons
+- **State Management & Visualization:** Zustand, Recharts / Tremor for dynamic scenario graphics
+- **Database & Auth:** Supabase (PostgreSQL with Row-Level Security)
+- **Deployment & Infra:** Vercel (Connected via GitHub)
+
+## UI/UX Design System ("Quiet Luxury Tech")
+- **Background Palette:** Dark Slate base (`bg-slate-950`, `bg-slate-900`)
+- **Borders & Dividers:** Subtle, high-precision dark borders (`border-slate-800/80`)
+- **Typography:** High-contrast white/slate text using crisp sans-serif fonts (Inter or Geist)
+- **Accent Indicators (Restrained Use):**
+  - Emerald (`text-emerald-400` / `bg-emerald-500/10`): Growth, positive alignment, low risk
+  - Amber (`text-amber-400` / `bg-amber-500/10`): Caution, perception gap, governance debt
+  - Cyan (`text-cyan-400` / `bg-cyan-500/10`): Metrics, financial figures, data indicators
+  - Rose (`text-rose-400` / `bg-rose-500/10`): Critical risk, red team failure points
