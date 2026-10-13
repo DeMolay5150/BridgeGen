@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AccountMenu } from "@/components/auth/account-menu";
 import { cn } from "@/lib/utils";
 
 /** `short` replaces the label below the md breakpoint so the bar fits a phone. */
@@ -59,10 +60,13 @@ export function SiteNav() {
         <Link href="/" className="shrink-0 font-mono text-xs uppercase tracking-widest text-metric">
           BridgeGen
         </Link>
-        {/* usePathname suspends on routes with unknown dynamic params under Cache Components. */}
-        <Suspense fallback={<NavLinks pathname={null} />}>
-          <ActiveNavLinks />
-        </Suspense>
+        <div className="flex min-w-0 flex-1 justify-end">
+          {/* usePathname suspends on routes with unknown dynamic params under Cache Components. */}
+          <Suspense fallback={<NavLinks pathname={null} />}>
+            <ActiveNavLinks />
+          </Suspense>
+        </div>
+        <AccountMenu />
       </nav>
     </header>
   );
