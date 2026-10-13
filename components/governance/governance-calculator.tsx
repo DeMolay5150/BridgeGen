@@ -6,7 +6,7 @@ import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Segmented } from "@/components/segmented";
 import {
   CATEGORY_LABELS,
   DEMO_GOVERNANCE,
@@ -85,39 +85,6 @@ function scoreTone(score: number): Severity {
   if (score >= GOVERNANCE_CRITICAL) return "critical";
   if (score >= GOVERNANCE_CAUTION) return "caution";
   return "positive";
-}
-
-function Segmented<T extends string>({
-  labelId,
-  value,
-  options,
-  onChange,
-}: {
-  labelId: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <ToggleGroup
-      aria-labelledby={labelId}
-      variant="outline"
-      size="sm"
-      spacing={0}
-      value={[value]}
-      // Base UI reports [] when the pressed item is clicked again; keep the current answer.
-      onValueChange={(next) => {
-        const selected = next[0];
-        if (selected) onChange(selected as T);
-      }}
-    >
-      {options.map((option) => (
-        <ToggleGroupItem key={option.value} value={option.value} className="px-3">
-          {option.label}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
-  );
 }
 
 function SeatInput({ labelId, value, onChange }: { labelId: string; value: number; onChange: (value: number) => void }) {

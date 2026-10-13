@@ -91,19 +91,20 @@ export function DecisionMatrix() {
   const baseline = useSimulatorStore((s) => s.baseline);
   const scenario = useSimulatorStore((s) => s.scenario);
   const governanceScore = useSimulatorStore(selectGovernanceScore);
+  const priorities = useSimulatorStore((s) => s.priorities);
   const setScenario = useSimulatorStore((s) => s.setScenario);
 
   const current: MatrixScore = useMemo(
-    () => scoreScenario(baseline, scenario, governanceScore),
-    [baseline, scenario, governanceScore],
+    () => scoreScenario(baseline, scenario, governanceScore, priorities),
+    [baseline, scenario, governanceScore, priorities],
   );
   const strategies = useMemo(
     () =>
       STRATEGIES.map((strategy) => ({
         strategy,
-        score: scoreScenario(baseline, strategyScenario(baseline, strategy), governanceScore),
+        score: scoreScenario(baseline, strategyScenario(baseline, strategy), governanceScore, priorities),
       })),
-    [baseline, governanceScore],
+    [baseline, governanceScore, priorities],
   );
 
   const load = (strategy: Strategy) => setScenario(strategyScenario(baseline, strategy));

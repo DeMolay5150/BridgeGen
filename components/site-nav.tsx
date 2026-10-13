@@ -5,10 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const LINKS = [
+/** `short` replaces the label below the md breakpoint so the bar fits a phone. */
+const LINKS: { href: string; label: string; short?: string }[] = [
   { href: "/simulator", label: "Simulator" },
   { href: "/governance", label: "Governance" },
-  { href: "/fork", label: "Fork the Future" },
+  { href: "/fork", label: "Fork the Future", short: "Fork" },
+  { href: "/room", label: "Decision Room", short: "Room" },
 ];
 
 function NavLinks({ pathname }: { pathname: string | null }) {
@@ -26,7 +28,14 @@ function NavLinks({ pathname }: { pathname: string | null }) {
                 active ? "bg-muted text-foreground" : "text-muted-foreground",
               )}
             >
-              {link.label}
+              {link.short ? (
+                <>
+                  <span className="md:hidden">{link.short}</span>
+                  <span className="hidden md:inline">{link.label}</span>
+                </>
+              ) : (
+                link.label
+              )}
             </Link>
           </li>
         );

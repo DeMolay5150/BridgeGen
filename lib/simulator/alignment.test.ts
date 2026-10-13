@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scoreScenario } from "./alignment";
+import { DEFAULT_PRIORITIES, contributions, scoreScenario, type Priorities } from "./alignment";
 import { DEMO_BASELINE, neutralScenario } from "./defaults";
 import { STRATEGIES, strategyScenario } from "./strategies";
 import type { Baseline, Scenario } from "./types";
@@ -100,6 +100,48 @@ describe("scoreScenario: governance debt cascade", () => {
       expect(economics).toBeLessThanOrEqual(previous + 1e-9);
       previous = economics;
     }
+  });
+});
+
+describe("scoreScenario: stakeholder priorities", () => {
+  const withFounder = (founder: Partial<Priorities["founder"]>): Priorities => ({
+    ...DEFAULT_PRIORITIES,
+    founder: { ...DEFAULT_PRIORITIES.founder, control: 0, value: 0, liquidity: 0, resilience: 0, ...founder },
+  });
+
+  it("reproduces the founding weights by default", () => {
+    expect(scoreScenario(base, neutral, 0, DEFAULT_PRIORITIES)).toEqual(scoreScenario(base, neutral));
+  });
+
+  it("scores a single-priority stakeholder at exactly that sub-score", () => {
+    const s = scoreScenario(base, { ...neutral, multipleShock: -0.2 }, 0, withFounder({ value: 7 }));
+    expect(s.subScores.value).toBeCloseTo(30);
+    expect(supports(s).founder).toBeCloseTo(30);
+  });
+
+  it("only cares about relative importance, not absolute slider values", () => {
+    const a = scoreScenario(base, neutral, 0, withFounder({ control: 2, value: 1 }));
+    const b = scoreScenario(base, neutral, 0, withFounder({ control: 20, value: 10 }));
+    expect(supports(a).founder).toBeCloseTo(supports(b).founder);
+  });
+
+  it("treats a stakeholder who cares about nothing as neutral (50)", () => {
+    const s = scoreScenario(base, neutral, 0, withFounder({}));
+    expect(supports(s).founder).toBe(50);
+    expect(contributions("founder", s.subScores, withFounder({}))).toEqual([]);
+  });
+
+  it("explains support as weighted pulls away from neutral", () => {
+    const s = score();
+    const parts = contributions("founder", s.subScores);
+    // Founder today: control 100 (+22.5), value 50 (0), liquidity 50 (0), resilience 100 (+7.5).
+    expect(parts.map((p) => [p.key, p.weight, p.impact])).toEqual([
+      ["control", 0.45, 22.5],
+      ["value", 0.25, 0],
+      ["liquidity", 0.15, 0],
+      ["resilience", 0.15, 7.5],
+    ]);
+    expect(50 + parts.reduce((sum, p) => sum + p.impact, 0)).toBeCloseTo(supports(s).founder);
   });
 });
 

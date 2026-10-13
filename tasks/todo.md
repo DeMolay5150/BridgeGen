@@ -29,6 +29,12 @@
   - 18 Vitest tests; demo: fixing governance is worth +$20.3M by year 10, a dividend recap trails Today by $12.4M
 
 ## Phase 3: Governance & Stress-Testing
-- [ ] Task 3.1: Build multi-stakeholder "Decision Room" (Founder vs Heir vs Board views)
+- [x] Task 3.1: Build multi-stakeholder "Decision Room" (Founder vs Heir vs Board views)
+  - Route `/room`: tabs for Founder, Next-gen heir, Board, Lender + Facilitator (inactive tabs unmount)
+  - Each view: support score + drivers, role KPIs, 7 priority sliders that replace matrix weights app-wide
+  - Private 6-topic questionnaire: own position + prediction of another stakeholder; "Submit & hide"
+  - `detectGaps` (`lib/room/gaps.ts`): disagreements (spread ≥2) and misperceptions (|prediction − actual| ≥2), never exposing raw answers
+  - In-memory only; true per-person confidentiality awaits Supabase auth + RLS
+  - 20 new Vitest tests (gaps, priorities, room store)
 - [ ] Task 3.2: Implement "Red Team Mode" emergency stress-testing scenarios
 - [ ] Task 3.3: Implement "Explain This Decision" glass-box logic cards

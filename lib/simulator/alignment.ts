@@ -32,28 +32,52 @@ export interface SubScores {
 
 export type StakeholderId = "founder" | "nextGen" | "board" | "lender";
 
-/** How much each stakeholder cares about each sub-score. Weights per row sum to 1. */
-export const STAKEHOLDER_WEIGHTS: Record<
-  StakeholderId,
-  { label: string; weights: Partial<Record<keyof SubScores | "capitalRetention", number>> }
-> = {
-  founder: {
-    label: "Founder",
-    weights: { control: 0.45, value: 0.25, liquidity: 0.15, resilience: 0.15 },
-  },
-  nextGen: {
-    label: "Next-gen heir",
-    weights: { succession: 0.5, value: 0.3, resilience: 0.2 },
-  },
-  board: {
-    label: "Board",
-    weights: { value: 0.4, resilience: 0.4, professionalization: 0.2 },
-  },
-  lender: {
-    label: "Lender",
-    // capitalRetention = 100 − liquidity: lenders dislike cash leaving the business.
-    weights: { resilience: 0.8, capitalRetention: 0.2 },
-  },
+export const STAKEHOLDER_LABELS: Record<StakeholderId, string> = {
+  founder: "Founder",
+  nextGen: "Next-gen heir",
+  board: "Board",
+  lender: "Lender",
+};
+
+export const STAKEHOLDER_IDS = Object.keys(STAKEHOLDER_LABELS) as StakeholderId[];
+
+/** What a stakeholder can care about: each sub-score, plus cash kept in the business (100 − liquidity). */
+export type PriorityKey = keyof SubScores | "capitalRetention";
+
+export const PRIORITY_LABELS: Record<PriorityKey, string> = {
+  control: "Founder control",
+  value: "Company value",
+  liquidity: "Cash to shareholders",
+  resilience: "Financial resilience",
+  succession: "Next-gen succession",
+  professionalization: "Professional management",
+  capitalRetention: "Cash kept in the business",
+};
+
+export const PRIORITY_KEYS = Object.keys(PRIORITY_LABELS) as PriorityKey[];
+
+/** Raw importance per priority (0–20); normalized to weights when scoring. */
+export type Priorities = Record<StakeholderId, Record<PriorityKey, number>>;
+
+export const PRIORITY_RANGE = { min: 0, max: 20, step: 1 };
+
+const none: Record<PriorityKey, number> = {
+  control: 0,
+  value: 0,
+  liquidity: 0,
+  resilience: 0,
+  succession: 0,
+  professionalization: 0,
+  capitalRetention: 0,
+};
+
+/** Default priorities: the founding weights × 20 (e.g. founder control 0.45 → 9). */
+export const DEFAULT_PRIORITIES: Priorities = {
+  founder: { ...none, control: 9, value: 5, liquidity: 3, resilience: 3 },
+  nextGen: { ...none, succession: 10, value: 6, resilience: 4 },
+  board: { ...none, value: 8, resilience: 8, professionalization: 4 },
+  // Lenders dislike cash leaving the business.
+  lender: { ...none, resilience: 16, capitalRetention: 4 },
 };
 
 const OUTSIDE_CEO_CONTROL_FACTOR = 0.8;
@@ -133,14 +157,38 @@ export interface MatrixScore {
   subScores: SubScores;
 }
 
-function supportFor(id: StakeholderId, scores: SubScores): number {
-  const inputs = { ...scores, capitalRetention: 100 - scores.liquidity };
-  const { weights } = STAKEHOLDER_WEIGHTS[id];
-  let total = 0;
-  for (const [key, weight] of Object.entries(weights) as [keyof typeof inputs, number][]) {
-    total += inputs[key] * weight;
-  }
-  return pct(total);
+export interface Contribution {
+  key: PriorityKey;
+  label: string;
+  /** Normalized weight (0–1). */
+  weight: number;
+  /** Points this priority adds to (or takes from) support relative to a neutral 50. */
+  impact: number;
+}
+
+/** Each priority's normalized weight and its pull on support. Empty if nothing matters. */
+export function contributions(
+  id: StakeholderId,
+  scores: SubScores,
+  priorities: Priorities = DEFAULT_PRIORITIES,
+): Contribution[] {
+  const inputs: Record<PriorityKey, number> = { ...scores, capitalRetention: 100 - scores.liquidity };
+  const raw = priorities[id];
+  const importance = (key: PriorityKey) => clamp(raw[key] ?? 0, PRIORITY_RANGE);
+  const total = PRIORITY_KEYS.reduce((sum, key) => sum + importance(key), 0);
+  if (total <= 0) return [];
+  return PRIORITY_KEYS.filter((key) => importance(key) > 0).map((key) => {
+    const weight = importance(key) / total;
+    return { key, label: PRIORITY_LABELS[key], weight, impact: weight * (inputs[key] - 50) };
+  });
+}
+
+function supportFor(id: StakeholderId, scores: SubScores, priorities: Priorities): number {
+  const parts = contributions(id, scores, priorities);
+  // A stakeholder who cares about nothing is neutral.
+  if (parts.length === 0) return 50;
+  const inputs: Record<PriorityKey, number> = { ...scores, capitalRetention: 100 - scores.liquidity };
+  return pct(parts.reduce((sum, p) => sum + inputs[p.key] * p.weight, 0));
 }
 
 /** Scores one scenario on both matrix axes. Pure; always returns values in 0–100. */
@@ -149,15 +197,17 @@ export function scoreScenario(
   scenario: Scenario,
   /** Governance Debt Score (0–100); drags resilience down. */
   governanceScore = 0,
+  /** Each stakeholder's priorities; defaults to the founding weights. */
+  priorities: Priorities = DEFAULT_PRIORITIES,
 ): MatrixScore {
   const result = simulate(baseline, scenario);
   const today = simulate(baseline, neutralScenario(baseline));
   const scores = subScores(baseline, scenario, result, today, governanceScore);
 
-  const stakeholders = (Object.keys(STAKEHOLDER_WEIGHTS) as StakeholderId[]).map((id) => ({
+  const stakeholders = STAKEHOLDER_IDS.map((id) => ({
     id,
-    label: STAKEHOLDER_WEIGHTS[id].label,
-    support: supportFor(id, scores),
+    label: STAKEHOLDER_LABELS[id],
+    support: supportFor(id, scores, priorities),
   }));
 
   const supports = stakeholders.map((s) => s.support);

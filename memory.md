@@ -3,7 +3,7 @@
 ## Current Execution State
 - Workspace setup: COMPLETE
 - Next.js 16 environment: COMPLETE (Task 1.1)
-- Core Simulation Engine: IN PROGRESS (Tasks 2.1 Flight Simulator, 2.2 Economics vs. Alignment, 2.3 Governance Debt, 2.4 Fork the Future complete — Phase 2 done)
+- Core Simulation Engine: IN PROGRESS (Tasks 2.1 Flight Simulator, 2.2 Economics vs. Alignment, 2.3 Governance Debt, 2.4 Fork the Future complete — Phase 2 done; Phase 3: 3.1 Decision Room complete)
 
 ## Active Build Notes
 - System framework initialized under multi-agent file architecture with Staff Engineer workflow rules, Red Team protocols, and GitHub integration.
@@ -17,6 +17,8 @@
 - 2026-10-12: Economics vs. Alignment matrix (Task 2.2). Alignment is *derived* from the levers via sub-scores (value, resilience, liquidity, control, succession, professionalization) weighted per stakeholder in `STAKEHOLDER_WEIGHTS` (`lib/simulator/alignment.ts`) — Task 3.1 should tune these rather than build a parallel model. Demo company today: economics 70, alignment ≈41 (heir disengaged). Recharts pinned to 3.8.0 by shadcn's chart component.
 - 2026-10-12: Governance Debt (Task 2.3). Score 0–100 from 9 weighted items (`lib/governance/model.ts`); $ at risk = EV × 30% × score/100 and is shown as value *at risk* — EV itself is not discounted (avoids double counting with the resilience drag). Cascade is via optional `governanceScore` params on `simulate()` and `scoreScenario()` (default 0 keeps earlier tests valid); components read it with `selectGovernanceScore`. With demo governance (78) the demo company's Today moves to economics 54.4 / alignment 29.7.
 - 2026-10-12: Fork the Future (Task 2.4). `project()` (`lib/projection/model.ts`) starts from `simulate()` at year 0, then grows EBITDA (losses stay flat), sweeps FCF (EBITDA × conversion − interest) into debt paydown then dividends, borrows shortfalls, and compounds governance crisis odds (p = 8% × score/100; expected loss = EV × 30% × P_t). Values are undiscounted. "Fix governance" is branch-local (score 0) and never edits the real answers. Default fork (Today vs Your scenario) is intentionally identical until the user changes the simulator or a branch.
+- 2026-10-12: Decision Room (Task 3.1). `STAKEHOLDER_WEIGHTS` was replaced by editable `priorities` (0–20 per key, normalized when scoring; `DEFAULT_PRIORITIES` = old weights × 20 so earlier tests hold). `scoreScenario(…, governanceScore, priorities)`; all-zero priorities → support 50. Room answers live in the store (`room`), never persisted; editing answers un-submits. `detectGaps` output is whitelisted to topic/spread/gap/severity/observer/target — a test enforces that no raw answers leak. Demo story: founder misreads the heir on all 6 topics (2 critical).
+- Base UI Tabs unmount inactive panels by default — relied on for Decision Room privacy; don't set `keepMounted`.
 - Base UI Select shows the raw value unless the Root gets `items` (array of `{ value, label }`); `onValueChange` can emit null.
 - Base UI ToggleGroup reports `[]` when the pressed item is clicked again — ignore empty values to keep single-select answers.
 - Recharts 3 Scatter click handling: use a custom `shape` render function and look the point up by `index` rather than relying on the loosely typed `onClick` payload.
