@@ -3,6 +3,7 @@ import { scoreGovernance } from "../governance/model";
 import type { GovernanceAnswers } from "../governance/types";
 import { defaultSnapshot, type CompanySnapshot } from "../persistence/serialize";
 import type { ForkState } from "../projection/types";
+import { applyResponsePatch } from "../room/response";
 import { DEMO_RESPONSES } from "../room/topics";
 import type { RoomResponse, RoomResponses } from "../room/types";
 import {
@@ -15,8 +16,6 @@ import { neutralScenario } from "./defaults";
 import type { Baseline, Scenario } from "./types";
 
 export type { ForkState };
-
-const EMPTY_RESPONSE: RoomResponse = { positions: {}, predictions: {}, submitted: false };
 
 interface SimulatorState extends CompanySnapshot {
   /** The saved company being edited, or null for the in-memory public demo. */
@@ -75,20 +74,7 @@ export const useSimulatorStore = create<SimulatorState>()((set) => ({
   resetPriorities: (id) =>
     set((state) => ({ priorities: { ...state.priorities, [id]: DEFAULT_PRIORITIES[id] } })),
   setResponse: (id, patch) =>
-    set((state) => {
-      const current = state.room[id] ?? EMPTY_RESPONSE;
-      const editsAnswers = "positions" in patch || "predictions" in patch;
-      return {
-        room: {
-          ...state.room,
-          [id]: {
-            positions: { ...current.positions, ...patch.positions },
-            predictions: { ...current.predictions, ...patch.predictions },
-            submitted: patch.submitted ?? (editsAnswers ? false : current.submitted),
-          },
-        },
-      };
-    }),
+    set((state) => ({ room: { ...state.room, [id]: applyResponsePatch(state.room[id], patch) } })),
   loadDemoRoom: () => set({ room: DEMO_RESPONSES }),
   clearRoom: () => set({ room: {} }),
   loadCompany: ({ id, name, snapshot }) => set({ ...snapshot, companyId: id, companyName: name, room: {} }),

@@ -8,6 +8,13 @@
 - **Database & Auth:** Supabase (PostgreSQL with Row-Level Security)
 - **Deployment & Infra:** Vercel (Connected via GitHub)
 
+## Supabase (persistence & auth)
+- **Setup:** copy `.env.example` → `.env.local` (URL, publishable key, secret key). Without it the app runs as the in-memory public demo; nothing breaks.
+- **Clients:** `lib/supabase/client.ts` (browser), `server.ts` (cookies, RLS as the user), `admin.ts` (secret key, `server-only`, room routes only, after authorization). `proxy.ts` refreshes sessions (Next 16's renamed middleware).
+- **Schema:** `supabase/migrations/`. `companies` and `room_invites` are owner-only via RLS; `room_responses` has RLS on with no policies and revoked privileges, so only the server reads it. Every new table needs RLS + a check in `tests/rls/`.
+- **Confidentiality rule:** raw Decision Room answers never leave the server. Advisors get `detectGaps()` output only; stakeholders reach their own answers only via their invite token (stored as a SHA-256 hash).
+- **Persistence:** `lib/persistence/serialize.ts` validates and default-merges saved rows; `components/session-sync.tsx` autosaves the open company.
+
 ## UI/UX Design System ("Quiet Luxury Tech")
 - **Background Palette:** Dark Slate base (`bg-slate-950`, `bg-slate-900`)
 - **Borders & Dividers:** Subtle, high-precision dark borders (`border-slate-800/80`)

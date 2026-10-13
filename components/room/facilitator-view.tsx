@@ -2,13 +2,17 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { CheckCircle2, Circle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Circle, RefreshCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { detectGaps } from "@/lib/room/gaps";
+import type { RoomGaps } from "@/lib/room/types";
+import { useRoomGaps } from "@/lib/room/use-room-api";
 import { STAKEHOLDER_IDS, STAKEHOLDER_LABELS, scoreScenario } from "@/lib/simulator/alignment";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { cn } from "@/lib/utils";
+
+const EMPTY_GAPS: RoomGaps = detectGaps({});
 
 const SEVERITY_STYLES = {
   caution: "text-caution bg-caution/10",
@@ -23,8 +27,12 @@ export function FacilitatorView() {
   const priorities = useSimulatorStore((s) => s.priorities);
   const loadDemoRoom = useSimulatorStore((s) => s.loadDemoRoom);
   const clearRoom = useSimulatorStore((s) => s.clearRoom);
+  const companyId = useSimulatorStore((s) => s.companyId);
+  const remote = useRoomGaps(companyId);
 
-  const gaps = useMemo(() => detectGaps(room), [room]);
+  // Saved company: gaps come from the server, which never sends raw answers.
+  const localGaps = useMemo(() => detectGaps(room), [room]);
+  const gaps = companyId ? (remote.data ?? EMPTY_GAPS) : localGaps;
   const matrix = useMemo(
     () => scoreScenario(baseline, scenario, governanceScore, priorities),
     [baseline, scenario, governanceScore, priorities],
@@ -53,19 +61,38 @@ export function FacilitatorView() {
                 </li>
               ))}
             </ul>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={loadDemoRoom}>
-                Load demo answers
-              </Button>
-              <Button variant="ghost" size="sm" onClick={clearRoom}>
-                Clear all answers
-              </Button>
-            </div>
-            <p className="flex gap-2 text-xs text-muted-foreground">
-              <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-              Answers stay in this browser tab and are never stored or sent anywhere. Reloading the
-              page clears them.
-            </p>
+            {companyId ? (
+              <>
+                <Button variant="outline" size="sm" className="w-fit" onClick={remote.refresh}>
+                  <RefreshCw data-icon="inline-start" />
+                  Refresh
+                </Button>
+                {remote.error && (
+                  <p role="alert" className="text-xs text-critical">Couldn&apos;t load the room. Retrying every 15 seconds.</p>
+                )}
+                <p className="flex gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  Stakeholders answer through private links. Their answers are stored server-side and
+                  never shown to you: this view only shows where views diverge.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={loadDemoRoom}>
+                    Load demo answers
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={clearRoom}>
+                    Clear all answers
+                  </Button>
+                </div>
+                <p className="flex gap-2 text-xs text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  Answers stay in this browser tab and are never stored or sent anywhere. Reloading the
+                  page clears them.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 

@@ -28,6 +28,12 @@
   - Shareholder value line chart, who's-ahead strip at 1/3/5/10y, horizon detail table
   - 18 Vitest tests; demo: fixing governance is worth +$20.3M by year 10, a dividend recap trails Today by $12.4M
 
+## Phase 4: System of Record
+- [ ] Task 4.1: Supabase persistence and auth (code complete; awaiting project keys, `db push` and `pnpm test:rls` against the live project)
+  - Email + password advisor accounts; `/companies` with autosave; public demo unchanged when signed out
+  - Confidential Decision Room: per-stakeholder invite links (`/respond/[token]`), server-only answers, gaps-only API
+  - Migrations in `supabase/migrations/`; RLS verified by `tests/rls/`
+
 ## Phase 3: Governance & Stress-Testing
 - [x] Task 3.1: Build multi-stakeholder "Decision Room" (Founder vs Heir vs Board views)
   - Route `/room`: tabs for Founder, Next-gen heir, Board, Lender + Facilitator (inactive tabs unmount)

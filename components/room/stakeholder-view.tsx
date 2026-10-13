@@ -19,6 +19,8 @@ import { formatMoney, formatMultiple, formatPercent } from "@/lib/simulator/form
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import type { Severity, SimulationResult } from "@/lib/simulator/types";
 import { cn } from "@/lib/utils";
+import { useInviteStatus } from "@/lib/room/use-room-api";
+import { InvitePanel } from "./invite-panel";
 import { Questionnaire } from "./questionnaire";
 
 const TONE: Record<Severity, string> = {
@@ -71,6 +73,8 @@ export function StakeholderView({ stakeholder }: { stakeholder: StakeholderId })
   const priorities = useSimulatorStore((s) => s.priorities);
   const setPriorities = useSimulatorStore((s) => s.setPriorities);
   const resetPriorities = useSimulatorStore((s) => s.resetPriorities);
+  const companyId = useSimulatorStore((s) => s.companyId);
+  const invites = useInviteStatus(companyId);
 
   const result = useMemo(
     () => simulate(baseline, scenario, governanceScore),
@@ -169,7 +173,16 @@ export function StakeholderView({ stakeholder }: { stakeholder: StakeholderId })
         </Card>
       </div>
 
-      <Questionnaire stakeholder={stakeholder} />
+      {companyId ? (
+        <InvitePanel
+          companyId={companyId}
+          stakeholder={stakeholder}
+          status={invites.data?.find((s) => s.stakeholder === stakeholder)}
+          onChanged={invites.refresh}
+        />
+      ) : (
+        <Questionnaire stakeholder={stakeholder} />
+      )}
     </div>
   );
 }

@@ -1,0 +1,123 @@
+import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { generateToken, hashToken } from "../../lib/room/tokens";
+import { DEMO_RESPONSES } from "../../lib/room/topics";
+
+if (existsSync(".env.local")) process.loadEnvFile(".env.local");
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
+const secret = process.env.SUPABASE_SECRET_KEY ?? "";
+const configured = url.startsWith("https://") && publishable.length > 20 && secret.length > 20;
+/** Set to test the API routes too, e.g. BRIDGEGEN_BASE_URL=http://localhost:3000 */
+const baseUrl = process.env.BRIDGEGEN_BASE_URL;
+
+const noSession = { auth: { persistSession: false, autoRefreshToken: false } };
+const password = `Rls-${randomUUID()}`;
+const run = randomUUID().slice(0, 8);
+
+let admin: SupabaseClient;
+let alice: SupabaseClient;
+let bob: SupabaseClient;
+let anon: SupabaseClient;
+const userIds: string[] = [];
+let companyId = "";
+
+async function signedInUser(label: string): Promise<SupabaseClient> {
+  const email = `rls-${label}-${run}@example.test`;
+  const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+  if (error || !data.user) throw error ?? new Error("createUser failed");
+  userIds.push(data.user.id);
+  const client = createClient(url, publishable, noSession);
+  const { error: signInError } = await client.auth.signInWithPassword({ email, password });
+  if (signInError) throw signInError;
+  return client;
+}
+
+/** A read that RLS or revoked privileges block: either an error or no rows. */
+async function expectNoRows(query: PromiseLike<{ data: unknown[] | null; error: unknown }>) {
+  const { data, error } = await query;
+  expect(error !== null || (data ?? []).length === 0).toBe(true);
+}
+
+describe.skipIf(!configured)("row-level security (live Supabase project)", () => {
+  beforeAll(async () => {
+    admin = createClient(url, secret, noSession);
+    anon = createClient(url, publishable, noSession);
+    alice = await signedInUser("alice");
+    bob = await signedInUser("bob");
+    const { data, error } = await alice.from("companies").insert({ name: `RLS check ${run}` }).select("id").single();
+    if (error || !data) throw error ?? new Error("insert failed");
+    companyId = data.id;
+  });
+
+  afterAll(async () => {
+    // Deleting the users cascades to their companies, invites and responses.
+    for (const id of userIds) await admin.auth.admin.deleteUser(id);
+  });
+
+  it("lets the owner read and update their company", async () => {
+    const { data } = await alice.from("companies").select("id").eq("id", companyId);
+    expect(data).toHaveLength(1);
+    const { error } = await alice.from("companies").update({ name: `Renamed ${run}` }).eq("id", companyId);
+    expect(error).toBeNull();
+  });
+
+  it("hides another advisor's company from reads, updates and deletes", async () => {
+    await expectNoRows(bob.from("companies").select("id").eq("id", companyId));
+    await bob.from("companies").update({ name: "hijacked" }).eq("id", companyId);
+    await bob.from("companies").delete().eq("id", companyId);
+    const { data } = await admin.from("companies").select("name").eq("id", companyId).single();
+    expect(data?.name).toBe(`Renamed ${run}`);
+  });
+
+  it("stops another advisor creating invites for someone else's company", async () => {
+    const { error } = await bob
+      .from("room_invites")
+      .insert({ company_id: companyId, stakeholder: "founder", token_hash: hashToken(generateToken()) });
+    expect(error).not.toBeNull();
+  });
+
+  it("gives signed-out visitors nothing", async () => {
+    await expectNoRows(anon.from("companies").select("id"));
+    await expectNoRows(anon.from("room_invites").select("id"));
+    await expectNoRows(anon.from("room_responses").select("stakeholder"));
+  });
+
+  it("never lets the advisor read raw Decision Room answers, even for their own company", async () => {
+    const { error } = await admin
+      .from("room_responses")
+      .insert({ company_id: companyId, stakeholder: "founder", ...DEMO_RESPONSES.founder });
+    expect(error).toBeNull();
+    await expectNoRows(alice.from("room_responses").select("positions").eq("company_id", companyId));
+    const { error: writeError } = await alice
+      .from("room_responses")
+      .upsert({ company_id: companyId, stakeholder: "nextGen", positions: {}, predictions: {}, submitted: true });
+    expect(writeError).not.toBeNull();
+  });
+
+  describe.skipIf(!baseUrl)("API routes", () => {
+    it("rejects unknown and malformed invite tokens with 404", async () => {
+      expect((await fetch(`${baseUrl}/api/respond/${generateToken()}`)).status).toBe(404);
+      expect((await fetch(`${baseUrl}/api/respond/not-a-token`)).status).toBe(404);
+    });
+
+    it("serves a valid invite only its own stakeholder's answers", async () => {
+      const token = generateToken();
+      await admin.from("room_invites").insert({ company_id: companyId, stakeholder: "founder", token_hash: hashToken(token) });
+      const res = await fetch(`${baseUrl}/api/respond/${token}`);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.stakeholder).toBe("founder");
+      expect(body.response.positions).toEqual(DEMO_RESPONSES.founder!.positions);
+      expect(JSON.stringify(body)).not.toContain("nextGen\":{");
+    });
+
+    it("refuses the gaps endpoint to anyone who isn't signed in as the owner", async () => {
+      expect((await fetch(`${baseUrl}/api/companies/${companyId}/gaps`)).status).toBe(404);
+      expect((await fetch(`${baseUrl}/api/companies/${companyId}/invites`)).status).toBe(404);
+    });
+  });
+});
