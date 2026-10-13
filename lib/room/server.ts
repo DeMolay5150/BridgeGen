@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { isSupabaseConfigured } from "../env";
 import { getAdminClient } from "../supabase/admin";
 import { getServerClient } from "../supabase/server";
 import { parseBody, rowsToResponses, type ResponseRow } from "./server-logic";
@@ -32,6 +33,8 @@ export async function ownedCompany(id: string): Promise<{ id: string; name: stri
 
 /** The invite a raw token belongs to, looked up by its hash. */
 export async function inviteForToken(token: string) {
+  // Demo-only deployments have no invites: every link is simply not found.
+  if (!isSupabaseConfigured()) return null;
   const { data } = await getAdminClient()
     .from("room_invites")
     .select("company_id, stakeholder")
