@@ -13,6 +13,7 @@ const LINKS: { href: string; label: string; short?: string }[] = [
   { href: "/fork", label: "Fork the Future", short: "Fork" },
   { href: "/room", label: "Decision Room", short: "Room" },
   { href: "/red-team", label: "Red Team" },
+  { href: "/pricing", label: "Pricing" },
 ];
 
 function NavLinks({ pathname }: { pathname: string | null }) {

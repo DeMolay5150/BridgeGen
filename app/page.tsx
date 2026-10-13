@@ -35,8 +35,8 @@ export default function Home() {
           <Button size="lg" nativeButton={false} render={<Link href="/simulator" />}>
             Run a simulation
           </Button>
-          <Button size="lg" variant="outline">
-            Explore scenarios
+          <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/pricing" />}>
+            See pricing
           </Button>
         </div>
       </div>

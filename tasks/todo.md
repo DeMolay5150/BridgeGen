@@ -31,6 +31,9 @@
 ## Phase 4: System of Record
 - [x] Task 4.1: Supabase persistence and auth — migration applied to project `ahujzemhtytbiyuemuyy`; `pnpm test:rls` 9/9 against the live project incl. an end-to-end confidential room run (2026-10-12)
   - Open before launch: turn "Confirm email" back on with custom SMTP; set `NEXT_PUBLIC_SITE_URL`
+- [x] Task 4.2: Go-to-market pricing strategy (`PRICING.md`) and `/pricing` page (Section 10 copy, billing toggle, ROI calculator, comparison, FAQ)
+  - Prices live in `lib/pricing/plans.ts`; unbuilt capabilities show "Coming soon"
+  - Open: billing/plan limits (Stripe), real trial mechanics, `NEXT_PUBLIC_SALES_CONTACT_URL` for sales CTAs
   - Email + password advisor accounts; `/companies` with autosave; public demo unchanged when signed out
   - Confidential Decision Room: per-stakeholder invite links (`/respond/[token]`), server-only answers, gaps-only API
   - Migrations in `supabase/migrations/`; RLS verified by `tests/rls/`

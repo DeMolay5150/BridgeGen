@@ -10,7 +10,7 @@
     "lint": "eslint",
     "type-check": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:rls": "vitest run --config vitest.rls.config.ts"
+    "test:rls": "vitest run --config vitest.rls.config.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
