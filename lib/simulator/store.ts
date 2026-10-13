@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { DEMO_GOVERNANCE, scoreGovernance } from "../governance/model";
+import { scoreGovernance } from "../governance/model";
 import type { GovernanceAnswers } from "../governance/types";
-import { DEFAULT_ASSUMPTIONS } from "../projection/model";
-import type { BranchSpec, ProjectionAssumptions } from "../projection/types";
+import { defaultSnapshot, type CompanySnapshot } from "../persistence/serialize";
+import type { ForkState } from "../projection/types";
 import { DEMO_RESPONSES } from "../room/topics";
 import type { RoomResponse, RoomResponses } from "../room/types";
 import {
@@ -11,30 +11,18 @@ import {
   type Priorities,
   type StakeholderId,
 } from "./alignment";
-import { DEMO_BASELINE, neutralScenario } from "./defaults";
+import { neutralScenario } from "./defaults";
 import type { Baseline, Scenario } from "./types";
 
-export interface ForkState {
-  a: BranchSpec;
-  b: BranchSpec;
-  assumptions: ProjectionAssumptions;
-}
-
-const DEFAULT_FORK: ForkState = {
-  a: { source: "today", fixGovernance: false },
-  b: { source: "current", fixGovernance: false },
-  assumptions: DEFAULT_ASSUMPTIONS,
-};
+export type { ForkState };
 
 const EMPTY_RESPONSE: RoomResponse = { positions: {}, predictions: {}, submitted: false };
 
-interface SimulatorState {
-  baseline: Baseline;
-  scenario: Scenario;
-  governance: GovernanceAnswers;
-  fork: ForkState;
-  priorities: Priorities;
-  /** Decision Room questionnaires. In memory only; never persisted. */
+interface SimulatorState extends CompanySnapshot {
+  /** The saved company being edited, or null for the in-memory public demo. */
+  companyId: string | null;
+  companyName: string | null;
+  /** Decision Room questionnaires answered on this device (demo mode). Never persisted. */
   room: RoomResponses;
   setBaseline: (patch: Partial<Baseline>) => void;
   setScenario: (patch: Partial<Scenario>) => void;
@@ -46,6 +34,13 @@ interface SimulatorState {
   setResponse: (id: StakeholderId, patch: Partial<RoomResponse>) => void;
   loadDemoRoom: () => void;
   clearRoom: () => void;
+  loadCompany: (company: { id: string; name: string; snapshot: CompanySnapshot }) => void;
+  setCompanyName: (name: string) => void;
+  exitToDemo: () => void;
+  /**
+   * Demo: back to the demo company. Saved company: resets only the decision
+   * levers, so one click never overwrites a client's figures.
+   */
   reset: () => void;
 }
 
@@ -54,11 +49,9 @@ interface SimulatorState {
  * where they're rendered, so they can never drift out of sync with the inputs.
  */
 export const useSimulatorStore = create<SimulatorState>()((set) => ({
-  baseline: DEMO_BASELINE,
-  scenario: neutralScenario(DEMO_BASELINE),
-  governance: DEMO_GOVERNANCE,
-  fork: DEFAULT_FORK,
-  priorities: DEFAULT_PRIORITIES,
+  ...defaultSnapshot(),
+  companyId: null,
+  companyName: null,
   room: {},
   setBaseline: (patch) =>
     set((state) => {
@@ -98,17 +91,29 @@ export const useSimulatorStore = create<SimulatorState>()((set) => ({
     }),
   loadDemoRoom: () => set({ room: DEMO_RESPONSES }),
   clearRoom: () => set({ room: {} }),
+  loadCompany: ({ id, name, snapshot }) => set({ ...snapshot, companyId: id, companyName: name, room: {} }),
+  setCompanyName: (name) => set({ companyName: name }),
+  exitToDemo: () => set({ ...defaultSnapshot(), companyId: null, companyName: null, room: {} }),
   reset: () =>
-    set({
-      baseline: DEMO_BASELINE,
-      scenario: neutralScenario(DEMO_BASELINE),
-      governance: DEMO_GOVERNANCE,
-      fork: DEFAULT_FORK,
-      priorities: DEFAULT_PRIORITIES,
-      room: {},
-    }),
+    set((state) =>
+      state.companyId
+        ? { scenario: neutralScenario(state.baseline), room: {} }
+        : { ...defaultSnapshot(), room: {} },
+    ),
 }));
 
 /** Current Governance Debt Score (0–100). Selecting a number keeps re-renders minimal. */
 export const selectGovernanceScore = (state: SimulatorState) =>
   scoreGovernance(state.governance).score;
+
+/** The saved part of the state. */
+export const selectSnapshot = (state: SimulatorState): CompanySnapshot => ({
+  baseline: state.baseline,
+  scenario: state.scenario,
+  governance: state.governance,
+  fork: state.fork,
+  priorities: state.priorities,
+});
+
+/** Exposed for persistence code that subscribes outside React. */
+export type { SimulatorState, Priorities };

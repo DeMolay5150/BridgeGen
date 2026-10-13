@@ -43,3 +43,10 @@ export interface BranchSpec {
   /** Model this branch with best-practice governance (score 0). */
   fixGovernance: boolean;
 }
+
+/** The Fork the Future page's settings. */
+export interface ForkState {
+  a: BranchSpec;
+  b: BranchSpec;
+  assumptions: ProjectionAssumptions;
+}
