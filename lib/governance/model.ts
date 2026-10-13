@@ -28,6 +28,13 @@ export const CATEGORY_LABELS: Record<GovernanceCategoryId, string> = {
   voting: "Informal voting rules",
 };
 
+/** The answers that feed each category, e.g. to apply best practice to one category only. */
+export const CATEGORY_ANSWER_KEYS: Record<GovernanceCategoryId, (keyof GovernanceAnswers)[]> = {
+  authority: ["delegationOfAuthority", "successionPlan", "incapacitationPlan"],
+  board: ["boardSeatsFilled", "boardSeatsRecommended", "independentDirectors", "meetingCadence"],
+  voting: ["buySellAgreement", "votingRules", "disputeResolution"],
+};
+
 /** Whole number of seats between 0 and MAX_BOARD_SEATS. */
 const seats = (value: number) => Math.round(clamp(value, { min: 0, max: MAX_BOARD_SEATS }));
 const practiceGap = (value: Practice) => PRACTICE_GAP[value] ?? 1;

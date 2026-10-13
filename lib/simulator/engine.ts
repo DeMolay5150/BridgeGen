@@ -13,8 +13,8 @@ import type {
 export const COVERAGE_CRITICAL = 2;
 export const COVERAGE_CAUTION = 3;
 /** Debt / EBITDA above this is critical; at or above CAUTION is a warning. */
-const LEVERAGE_CRITICAL = 5;
-const LEVERAGE_CAUTION = 4;
+export const LEVERAGE_CRITICAL = 5;
+export const LEVERAGE_CAUTION = 4;
 /** Governance Debt Score at or above CRITICAL is critical; at or above CAUTION is a warning. */
 export const GOVERNANCE_CRITICAL = 60;
 export const GOVERNANCE_CAUTION = 30;

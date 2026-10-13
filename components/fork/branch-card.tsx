@@ -7,18 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { BRANCH_OPTIONS, type ResolvedBranch } from "@/lib/projection/branches";
 import type { BranchSpec } from "@/lib/projection/types";
-import { formatMoney, formatMultiple, formatPercent, formatSignedPercent } from "@/lib/simulator/format";
+import { describeScenario } from "@/lib/simulator/describe";
 import { cn } from "@/lib/utils";
-
-/** Plain-language summary of a branch's levers. */
-function describe({ scenario, governanceScore }: ResolvedBranch): string {
-  const parts = [`${formatMultiple(scenario.leverage)} leverage`];
-  if (scenario.equityTransfer > 0) parts.push(`${formatPercent(scenario.equityTransfer)} to heirs`);
-  if (Math.abs(scenario.multipleShock) >= 0.005) parts.push(`${formatSignedPercent(scenario.multipleShock)} multiple`);
-  if (scenario.outsideCeo) parts.push(`outside CEO (${formatMoney(scenario.ceoCost)})`);
-  parts.push(`governance ${Math.round(governanceScore)}/100`);
-  return parts.join(" · ");
-}
 
 export function BranchCard({
   name,
@@ -81,7 +71,7 @@ export function BranchCard({
             onCheckedChange={(fixGovernance) => onChange({ ...spec, fixGovernance })}
           />
         </div>
-        <p className="font-mono text-xs text-muted-foreground">{describe(resolved)}</p>
+        <p className="font-mono text-xs text-muted-foreground">{describeScenario(resolved.scenario, resolved.governanceScore)}</p>
       </CardContent>
     </Card>
   );

@@ -36,5 +36,9 @@
   - `detectGaps` (`lib/room/gaps.ts`): disagreements (spread ≥2) and misperceptions (|prediction − actual| ≥2), never exposing raw answers
   - In-memory only; true per-person confidentiality awaits Supabase auth + RLS
   - 20 new Vitest tests (gaps, priorities, room store)
-- [ ] Task 3.2: Implement "Red Team Mode" emergency stress-testing scenarios
+- [x] Task 3.2: Implement "Red Team Mode" emergency stress-testing scenarios
+  - Route `/red-team` attacks the live simulator scenario, with Today alongside
+  - Shocks (`lib/redteam/shocks.ts`): founder incapacitation, successor exit (debt-funded heir buyout), downturn, perfect storm — each scaled by the matching governance gaps, with a "governance dividend" re-run
+  - Breaking points (`lib/redteam/breaking.ts`): closed-form EBITDA / multiple declines that breach 2x coverage, 5x leverage or wipe out equity
+  - 17 Vitest tests; demo: incapacitation costs $30.5M today, $21.2M of it avoidable with documented authority
 - [ ] Task 3.3: Implement "Explain This Decision" glass-box logic cards

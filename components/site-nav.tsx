@@ -11,6 +11,7 @@ const LINKS: { href: string; label: string; short?: string }[] = [
   { href: "/governance", label: "Governance" },
   { href: "/fork", label: "Fork the Future", short: "Fork" },
   { href: "/room", label: "Decision Room", short: "Room" },
+  { href: "/red-team", label: "Red Team" },
 ];
 
 function NavLinks({ pathname }: { pathname: string | null }) {
