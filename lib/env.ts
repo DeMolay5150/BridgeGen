@@ -15,7 +15,9 @@ export type PublicSupabaseEnv = z.infer<typeof publicSchema>;
 export function publicSupabaseEnv(): PublicSupabaseEnv | null {
   const parsed = publicSchema.safeParse({
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    publishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    // Supabase's older dashboards call this the "anon" key; both names work.
+    publishableKey:
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   });
   return parsed.success ? parsed.data : null;
 }
@@ -24,7 +26,8 @@ export const isSupabaseConfigured = () => publicSupabaseEnv() !== null;
 
 /** Server-only secret key. Throws a clear error when it's missing. */
 export function supabaseSecretKey(): string {
-  const key = process.env.SUPABASE_SECRET_KEY;
+  // Older name: "service role" key.
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key || key.length < 20) {
     throw new Error("SUPABASE_SECRET_KEY is not set. Copy .env.example to .env.local and fill it in.");
   }

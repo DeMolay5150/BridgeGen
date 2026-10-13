@@ -8,8 +8,9 @@ import { DEMO_RESPONSES } from "../../lib/room/topics";
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
-const secret = process.env.SUPABASE_SECRET_KEY ?? "";
+const publishable =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const configured = url.startsWith("https://") && publishable.length > 20 && secret.length > 20;
 /** Set to test the API routes too, e.g. BRIDGEGEN_BASE_URL=http://localhost:3000 */
 const baseUrl = process.env.BRIDGEGEN_BASE_URL;
