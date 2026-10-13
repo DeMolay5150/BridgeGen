@@ -43,7 +43,7 @@ export function FlightSimulator() {
           <ScenarioControls />
         </div>
         <div className="lg:sticky lg:top-6">
-          <ResultsPanel result={result} />
+          <ResultsPanel result={result} baseline={baseline} scenario={scenario} />
         </div>
       </div>
 

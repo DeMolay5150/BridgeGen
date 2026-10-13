@@ -1,8 +1,16 @@
 import { cn } from "@/lib/utils";
+import { ExplainButton } from "@/components/explain/explain-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  explainCoverage,
+  explainDistribution,
+  explainEnterpriseValue,
+  explainEquity,
+} from "@/lib/explain/simulator";
+import type { Explanation } from "@/lib/explain/types";
 import { COVERAGE_CAUTION, COVERAGE_CRITICAL } from "@/lib/simulator/engine";
 import { formatMoney, formatMultiple, formatPercent } from "@/lib/simulator/format";
-import type { Holders, Severity, SimulationResult } from "@/lib/simulator/types";
+import type { Baseline, Holders, Scenario, Severity, SimulationResult } from "@/lib/simulator/types";
 
 const SEVERITY_STYLES: Record<Severity, string> = {
   positive: "text-positive bg-positive/10",
@@ -22,16 +30,21 @@ function Metric({
   value,
   detail,
   tone = "metric",
+  explain,
 }: {
   label: string;
   value: string;
   detail: string;
   tone?: Severity | "metric";
+  explain: () => Explanation;
 }) {
   return (
     <Card size="sm">
       <CardContent className="grid gap-1">
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <div className="-my-1 flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <ExplainButton subject={label.toLowerCase()} explain={explain} />
+        </div>
         <span className={cn("font-mono text-2xl tabular-nums", VALUE_TONE[tone])}>{value}</span>
         <span className="text-xs text-muted-foreground">{detail}</span>
       </CardContent>
@@ -104,7 +117,15 @@ function coverageTone(coverage: number | null): Severity | "metric" {
   return "positive";
 }
 
-export function ResultsPanel({ result }: { result: SimulationResult }) {
+export function ResultsPanel({
+  result,
+  baseline,
+  scenario,
+}: {
+  result: SimulationResult;
+  baseline: Baseline;
+  scenario: Scenario;
+}) {
   const direction = distributionDirection(result.netDistribution);
   return (
     <div className="grid gap-4">
@@ -113,6 +134,7 @@ export function ResultsPanel({ result }: { result: SimulationResult }) {
           label="Enterprise value"
           value={formatMoney(result.enterpriseValue)}
           detail={`${formatMoney(result.adjustedEbitda)} EBITDA × ${formatMultiple(result.effectiveMultiple)}`}
+          explain={() => explainEnterpriseValue(baseline, scenario)}
         />
         <Metric
           label="Equity value"
@@ -123,6 +145,7 @@ export function ResultsPanel({ result }: { result: SimulationResult }) {
               : `After ${formatMoney(result.totalDebt)} of debt`
           }
           tone={result.equityValue <= 0 ? "critical" : "metric"}
+          explain={() => explainEquity(baseline, scenario)}
         />
         <Metric
           label={direction < 0 ? "Capital required" : "Dividend recap payout"}
@@ -135,12 +158,14 @@ export function ResultsPanel({ result }: { result: SimulationResult }) {
                 : "No change to borrowing"
           }
           tone={direction < 0 ? "caution" : "metric"}
+          explain={() => explainDistribution(baseline, scenario)}
         />
         <Metric
           label="Interest coverage"
           value={formatMultiple(result.interestCoverage)}
           detail={`Debt ${formatMultiple(result.debtToEbitda)} EBITDA · ${formatMoney(result.interestExpense)}/yr interest`}
           tone={coverageTone(result.interestCoverage)}
+          explain={() => explainCoverage(baseline, scenario)}
         />
       </div>
 

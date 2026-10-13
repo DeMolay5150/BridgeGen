@@ -10,7 +10,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ExplainButton } from "@/components/explain/explain-button";
 import { Button } from "@/components/ui/button";
+import { explainAlignment, explainEconomics } from "@/lib/explain/matrix";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/chart";
 import { scoreScenario, type MatrixScore } from "@/lib/simulator/alignment";
@@ -249,11 +251,23 @@ export function DecisionMatrix() {
         <div className="grid content-start gap-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1">
-              <span className="text-xs text-muted-foreground">Economics</span>
+              <span className="-my-1 flex items-center gap-1 text-xs text-muted-foreground">
+                Economics
+                <ExplainButton
+                  subject="economics score"
+                  explain={() => explainEconomics(baseline, scenario, governanceScore, priorities)}
+                />
+              </span>
               <span className="font-mono text-2xl text-metric tabular-nums">{round(current.economics)}</span>
             </div>
             <div className="grid gap-1">
-              <span className="text-xs text-muted-foreground">Alignment</span>
+              <span className="-my-1 flex items-center gap-1 text-xs text-muted-foreground">
+                Alignment
+                <ExplainButton
+                  subject="alignment score"
+                  explain={() => explainAlignment(baseline, scenario, governanceScore, priorities)}
+                />
+              </span>
               <span className={cn("font-mono text-2xl tabular-nums", SEVERITY_TEXT[supportSeverity(current.alignment)])}>
                 {round(current.alignment)}
               </span>

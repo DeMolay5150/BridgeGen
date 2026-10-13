@@ -1,7 +1,9 @@
 "use client";
 
 import { SliderRow } from "@/components/slider-row";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExplainButton } from "@/components/explain/explain-button";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { explainForkLead } from "@/lib/explain/fork";
 import { resolveBranch } from "@/lib/projection/branches";
 import { ASSUMPTION_RANGES, HORIZONS, project } from "@/lib/projection/model";
 import { formatMoney, formatPercent, formatSignedPercent } from "@/lib/simulator/format";
@@ -87,6 +89,13 @@ export function ForkTheFuture() {
           <CardDescription>
             Equity, minus expected governance losses, plus all cash paid out to date.
           </CardDescription>
+          {!identical && (
+            <CardAction>
+              <ExplainButton subject="the 10-year gap" explain={() => explainForkLead(a, b, labels, 10)}>
+                Explain the 10-year gap
+              </ExplainButton>
+            </CardAction>
+          )}
         </CardHeader>
         <CardContent className="grid gap-6">
           {identical ? (

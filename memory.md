@@ -3,7 +3,7 @@
 ## Current Execution State
 - Workspace setup: COMPLETE
 - Next.js 16 environment: COMPLETE (Task 1.1)
-- Core Simulation Engine: IN PROGRESS (Tasks 2.1 Flight Simulator, 2.2 Economics vs. Alignment, 2.3 Governance Debt, 2.4 Fork the Future complete — Phase 2 done; Phase 3: 3.1 Decision Room, 3.2 Red Team Mode complete)
+- Core Simulation Engine: COMPLETE (Tasks 2.1 Flight Simulator, 2.2 Economics vs. Alignment, 2.3 Governance Debt, 2.4 Fork the Future complete — Phase 2 done; Phase 3: 3.1 Decision Room, 3.2 Red Team Mode, 3.3 Explain This Decision complete — roadmap done)
 
 ## Active Build Notes
 - System framework initialized under multi-agent file architecture with Staff Engineer workflow rules, Red Team protocols, and GitHub integration.
@@ -19,6 +19,7 @@
 - 2026-10-12: Fork the Future (Task 2.4). `project()` (`lib/projection/model.ts`) starts from `simulate()` at year 0, then grows EBITDA (losses stay flat), sweeps FCF (EBITDA × conversion − interest) into debt paydown then dividends, borrows shortfalls, and compounds governance crisis odds (p = 8% × score/100; expected loss = EV × 30% × P_t). Values are undiscounted. "Fix governance" is branch-local (score 0) and never edits the real answers. Default fork (Today vs Your scenario) is intentionally identical until the user changes the simulator or a branch.
 - 2026-10-12: Decision Room (Task 3.1). `STAKEHOLDER_WEIGHTS` was replaced by editable `priorities` (0–20 per key, normalized when scoring; `DEFAULT_PRIORITIES` = old weights × 20 so earlier tests hold). `scoreScenario(…, governanceScore, priorities)`; all-zero priorities → support 50. Room answers live in the store (`room`), never persisted; editing answers un-submits. `detectGaps` output is whitelisted to topic/spread/gap/severity/observer/target — a test enforces that no raw answers leak. Demo story: founder misreads the heir on all 6 topics (2 critical).
 - 2026-10-12: Red Team Mode (Task 3.2). Shocks act on the `simulate()` result (not via scenario levers, which clamp leverage at 6x). Value destroyed excludes the heir buyout (a transfer, not a loss), so buy-sell agreements change leverage/coverage and distribution but not total value. Breaking points are closed-form; `null` = cannot break, `0` = already broken. Thresholds come from engine constants (COVERAGE_*, LEVERAGE_*), shared with simulator signals.
+- 2026-10-12: Explain This Decision (Task 3.3). Explainers are pure functions returning `Explanation { title, summary, steps, drivers?, note? }`; the popover calls `explain()` only while open (Base UI popup unmounts when closed), so text is never stale. `attribute()` uses leave-one-out resets to today; the remainder row ("Interaction between levers") keeps drivers summing exactly to the change from today. `describeChanges` moved to `lib/redteam/describe.ts`. Roadmap Phases 1–3 complete.
 - Turbopack dev HMR can serve stale module exports after editing a lib file's exports (seen: `COVERAGE_CRITICAL` undefined → 500 on a new page) while tests and `next build` pass. Fix: restart `pnpm dev`.
 - Base UI Tabs unmount inactive panels by default — relied on for Decision Room privacy; don't set `keepMounted`.
 - Base UI Select shows the raw value unless the Root gets `items` (array of `{ value, label }`); `onValueChange` can emit null.

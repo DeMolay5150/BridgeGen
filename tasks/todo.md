@@ -41,4 +41,8 @@
   - Shocks (`lib/redteam/shocks.ts`): founder incapacitation, successor exit (debt-funded heir buyout), downturn, perfect storm — each scaled by the matching governance gaps, with a "governance dividend" re-run
   - Breaking points (`lib/redteam/breaking.ts`): closed-form EBITDA / multiple declines that breach 2x coverage, 5x leverage or wipe out equity
   - 17 Vitest tests; demo: incapacitation costs $30.5M today, $21.2M of it avoidable with documented authority
-- [ ] Task 3.3: Implement "Explain This Decision" glass-box logic cards
+- [x] Task 3.3: Implement "Explain This Decision" glass-box logic cards
+  - Deterministic explainers (`lib/explain/`): cascade steps built from engine outputs, with real figures
+  - Lever attribution: re-run with each lever reset to today; interactions reported as their own row
+  - Explain popovers on simulator metrics, matrix scores, governance score, fork 10-year gap, red-team shocks
+  - 21 Vitest tests (hand-checked text, attribution sums, headline consistency)

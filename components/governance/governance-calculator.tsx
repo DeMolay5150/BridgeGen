@@ -4,7 +4,9 @@ import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExplainButton } from "@/components/explain/explain-button";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { explainGovernance } from "@/lib/explain/governance";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/segmented";
 import {
@@ -204,6 +206,12 @@ export function GovernanceCalculator() {
             <CardHeader>
               <CardTitle>Governance Debt Score</CardTitle>
               <CardDescription>0 is best practice; 100 is no formal governance.</CardDescription>
+              <CardAction>
+                <ExplainButton
+                  subject="the Governance Debt Score"
+                  explain={() => explainGovernance(answers, enterpriseValue)}
+                />
+              </CardAction>
             </CardHeader>
             <CardContent className="grid gap-5">
               <div className="flex items-baseline gap-1">

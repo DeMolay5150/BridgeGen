@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { ExplainButton } from "@/components/explain/explain-button";
+import { explainShock } from "@/lib/explain/redteam";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GovernanceCategoryId } from "@/lib/governance/types";
-import type { ShockChanges, ShockResult, StressMetrics, Verdict } from "@/lib/redteam/types";
-import { formatMoney, formatMultiple, formatPercent } from "@/lib/simulator/format";
+import { describeChanges } from "@/lib/redteam/describe";
+import type { ShockResult, StressMetrics, Verdict } from "@/lib/redteam/types";
+import { formatMoney, formatMultiple } from "@/lib/simulator/format";
 import { cn } from "@/lib/utils";
 
 const VERDICT: Record<Verdict, { label: string; className: string }> = {
@@ -25,17 +30,6 @@ const ROWS: { label: string; value: (m: StressMetrics) => string }[] = [
   { label: "Debt / EBITDA", value: (m) => formatMultiple(m.debtToEbitda) },
 ];
 
-/** e.g. "EBITDA −17.4% · multiple −17.4% · +$31.5M debt · rates +2 pts". */
-export function describeChanges(c: ShockChanges): string {
-  const pct = (v: number) => formatPercent(v, 1);
-  const parts: string[] = [];
-  if (c.ebitdaCut > 0) parts.push(`EBITDA −${pct(c.ebitdaCut)}`);
-  if (c.multipleCut > 0) parts.push(`multiple −${pct(c.multipleCut)}`);
-  if (c.extraDebt > 0) parts.push(`+${formatMoney(c.extraDebt)} debt`);
-  if (c.rateIncrease > 0) parts.push(`rates +${(c.rateIncrease * 100).toFixed(0)} pts`);
-  return parts.join(" · ") || "No direct impact";
-}
-
 export function ShockCard({ shock }: { shock: ShockResult }) {
   const verdict = VERDICT[shock.verdict];
   return (
@@ -46,9 +40,12 @@ export function ShockCard({ shock }: { shock: ShockResult }) {
             <CardTitle>{shock.name}</CardTitle>
             <CardDescription>{shock.description}</CardDescription>
           </div>
-          <span className={cn("shrink-0 rounded-md px-2 py-1 text-xs font-medium", verdict.className)}>
-            {verdict.label}
-          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            <span className={cn("rounded-md px-2 py-1 text-xs font-medium", verdict.className)}>
+              {verdict.label}
+            </span>
+            <ExplainButton subject={`the ${shock.name.toLowerCase()} result`} explain={() => explainShock(shock)} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
