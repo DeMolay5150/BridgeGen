@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,16 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ tone: "error" | "info"; text: string } | null>(null);
+  // Set by /auth/confirm when an email link is expired or already used.
+  const linkFailed = useSearchParams().get("error") === "confirmation";
+  const [message, setMessage] = useState<{ tone: "error" | "info"; text: string } | null>(
+    linkFailed
+      ? {
+          tone: "error",
+          text: "That confirmation link has expired or was already used. If you've confirmed before, sign in; otherwise create the account again to get a fresh link.",
+        }
+      : null,
+  );
 
   if (!isSupabaseConfigured()) {
     return (
