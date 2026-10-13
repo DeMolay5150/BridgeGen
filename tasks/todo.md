@@ -29,7 +29,8 @@
   - 18 Vitest tests; demo: fixing governance is worth +$20.3M by year 10, a dividend recap trails Today by $12.4M
 
 ## Phase 4: System of Record
-- [ ] Task 4.1: Supabase persistence and auth (code complete; awaiting project keys, `db push` and `pnpm test:rls` against the live project)
+- [x] Task 4.1: Supabase persistence and auth — migration applied to project `ahujzemhtytbiyuemuyy`; `pnpm test:rls` 9/9 against the live project incl. an end-to-end confidential room run (2026-10-12)
+  - Open before launch: turn "Confirm email" back on with custom SMTP; set `NEXT_PUBLIC_SITE_URL`
   - Email + password advisor accounts; `/companies` with autosave; public demo unchanged when signed out
   - Confidential Decision Room: per-stakeholder invite links (`/respond/[token]`), server-only answers, gaps-only API
   - Migrations in `supabase/migrations/`; RLS verified by `tests/rls/`

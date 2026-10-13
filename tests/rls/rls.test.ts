@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
+import { createServerClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { detectGaps } from "../../lib/room/gaps";
 import { generateToken, hashToken } from "../../lib/room/tokens";
 import { DEMO_RESPONSES } from "../../lib/room/topics";
+import { STAKEHOLDER_IDS } from "../../lib/simulator/alignment";
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
@@ -28,6 +31,7 @@ let companyId = "";
 
 async function signedInUser(label: string): Promise<SupabaseClient> {
   const email = `rls-${label}-${run}@example.test`;
+  emails[label] = email;
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error || !data.user) throw error ?? new Error("createUser failed");
   userIds.push(data.user.id);
@@ -35,6 +39,22 @@ async function signedInUser(label: string): Promise<SupabaseClient> {
   const { error: signInError } = await client.auth.signInWithPassword({ email, password });
   if (signInError) throw signInError;
   return client;
+}
+
+const emails: Record<string, string> = {};
+
+/** Signs in through @supabase/ssr and returns the Cookie header a browser would send. */
+async function sessionCookie(label: string): Promise<string> {
+  const jar = new Map<string, string>();
+  const client = createServerClient(url, publishable, {
+    cookies: {
+      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
+      setAll: (cookies) => cookies.forEach(({ name, value }) => (value ? jar.set(name, value) : jar.delete(name))),
+    },
+  });
+  const { error } = await client.auth.signInWithPassword({ email: emails[label], password });
+  if (error) throw error;
+  return [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
 }
 
 /** A read that RLS or revoked privileges block: either an error or no rows. */
@@ -119,6 +139,53 @@ describe.skipIf(!configured)("row-level security (live Supabase project)", () =>
     it("refuses the gaps endpoint to anyone who isn't signed in as the owner", async () => {
       expect((await fetch(`${baseUrl}/api/companies/${companyId}/gaps`)).status).toBe(404);
       expect((await fetch(`${baseUrl}/api/companies/${companyId}/invites`)).status).toBe(404);
+    });
+
+    it("runs a confidential Decision Room end to end", async () => {
+      const ownerCookie = await sessionCookie("alice");
+      const otherCookie = await sessionCookie("bob");
+      const asOwner = (path: string, init: RequestInit = {}) =>
+        fetch(`${baseUrl}${path}`, { ...init, headers: { ...init.headers, Cookie: ownerCookie, "Content-Type": "application/json" } });
+
+      // The owner creates one private link per stakeholder; links are returned once.
+      const links: Record<string, string> = {};
+      for (const stakeholder of STAKEHOLDER_IDS) {
+        const res = await asOwner(`/api/companies/${companyId}/invites`, { method: "POST", body: JSON.stringify({ stakeholder }) });
+        expect(res.status).toBe(201);
+        links[stakeholder] = new URL((await res.json()).url).pathname.split("/").pop()!;
+      }
+
+      // Each stakeholder answers through their own link only.
+      for (const stakeholder of STAKEHOLDER_IDS) {
+        const res = await fetch(`${baseUrl}/api/respond/${links[stakeholder]}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(DEMO_RESPONSES[stakeholder]),
+        });
+        expect(res.status).toBe(200);
+      }
+
+      // The owner sees exactly the gaps in-memory detection finds, and nothing raw.
+      const gapsRes = await asOwner(`/api/companies/${companyId}/gaps`);
+      expect(gapsRes.status).toBe(200);
+      const gaps = await gapsRes.json();
+      expect(gaps).toEqual(detectGaps(DEMO_RESPONSES));
+      expect(JSON.stringify(gaps)).not.toMatch(/positions|predictions/);
+
+      // Status shows who has submitted, never what they said.
+      const status = await (await asOwner(`/api/companies/${companyId}/invites`)).json();
+      expect(status.stakeholders.every((s: { submitted: boolean; invitedAt: string | null }) => s.submitted && s.invitedAt)).toBe(true);
+      expect(JSON.stringify(status)).not.toMatch(/positions|predictions/);
+
+      // Another signed-in advisor gets nothing.
+      const stranger = await fetch(`${baseUrl}/api/companies/${companyId}/gaps`, { headers: { Cookie: otherCookie } });
+      expect(stranger.status).toBe(404);
+
+      // Replacing a link disables the old one but keeps the answers.
+      const old = links.founder;
+      await asOwner(`/api/companies/${companyId}/invites`, { method: "POST", body: JSON.stringify({ stakeholder: "founder" }) });
+      expect((await fetch(`${baseUrl}/api/respond/${old}`)).status).toBe(404);
+      expect((await (await asOwner(`/api/companies/${companyId}/gaps`)).json()).completion.founder).toBe(true);
     });
   });
 });
