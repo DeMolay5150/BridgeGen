@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { CheckCircle2, Circle, RefreshCw, ShieldCheck } from "lucide-react";
 import { ExportDialog } from "@/components/report/export-dialog";
+import { ActivityCard } from "./activity-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { detectGaps } from "@/lib/room/gaps";
@@ -108,6 +109,8 @@ export function FacilitatorView() {
             <ExportDialog gaps={companyId ? remote.data : localGaps} />
           </CardContent>
         </Card>
+
+        {companyId && <ActivityCard companyId={companyId} />}
 
         <Card>
           <CardHeader>

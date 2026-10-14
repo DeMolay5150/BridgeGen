@@ -26,18 +26,18 @@ export function InvitePanel({
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const generate = async () => {
     setBusy(true);
-    setError(false);
-    const link = await createInvite(companyId, stakeholder);
+    setError(null);
+    const result = await createInvite(companyId, stakeholder);
     setBusy(false);
-    if (link) {
-      setUrl(link);
+    if ("url" in result) {
+      setUrl(result.url);
       setCopied(false);
       onChanged();
-    } else setError(true);
+    } else setError(result.error);
   };
 
   const copy = async () => {
@@ -98,7 +98,7 @@ export function InvitePanel({
         {status?.invitedAt && !url && (
           <p className="text-xs text-muted-foreground">Replacing the link disables the old one. Answers already given are kept.</p>
         )}
-        {error && <p role="alert" className="text-xs text-critical">Couldn&apos;t create the link. Try again.</p>}
+        {error && <p role="alert" className="text-xs text-critical">{error}</p>}
       </CardContent>
     </Card>
   );

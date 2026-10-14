@@ -86,6 +86,7 @@ pnpm is pinned via `packageManager` in package.json. If `pnpm` is not on PATH, p
 - Linting: `pnpm lint`
 - Unit Tests: `pnpm test` (Vitest; pure engine logic lives in `lib/`, tests sit beside it as `*.test.ts`)
 - RLS Tests: `pnpm test:rls` (live checks against the Supabase project in `.env.local`; skips when unset. Add `BRIDGEGEN_BASE_URL=http://localhost:3000` to also test the API routes)
+- Migration checks: `pnpm test:migrations` (applies every migration to in-process Postgres and checks RLS; run before pushing)
 - Database: `npx supabase@2.120.0 db push` applies `supabase/migrations/` to the linked project
 - Production Build: `pnpm build`
 - Git Commit: `git add . && git commit -m "feat: [description]"`

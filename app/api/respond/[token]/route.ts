@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { recordAudit } from "@/lib/audit/server";
 import { EMPTY_RESPONSE } from "@/lib/room/response";
 import { responseBodySchema, stakeholderSchema, tokenSchema } from "@/lib/room/schema";
 import { inviteForToken, json, loadResponses, notFound, readBody } from "@/lib/room/server";
@@ -49,5 +50,14 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/respond
       { company_id: invite.companyId, stakeholder: invite.stakeholder, ...body.data },
       { onConflict: "company_id,stakeholder" },
     );
-  return error ? json({ error: "Couldn't save your answers" }, 500) : json({ ok: true });
+  if (error) return json({ error: "Couldn't save your answers" }, 500);
+
+  // Who and when, never what: the answers stay out of the audit trail.
+  await recordAudit({
+    companyId: invite.companyId,
+    actorId: null,
+    action: body.data.submitted ? "room.response_submitted" : "room.response_reopened",
+    metadata: { stakeholder: invite.stakeholder },
+  });
+  return json({ ok: true });
 }

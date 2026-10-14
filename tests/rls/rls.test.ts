@@ -162,6 +162,16 @@ describe.skipIf(!configured)("row-level security (live Supabase project)", () =>
       await expectNoRows(carol.from("room_responses").select("positions").eq("company_id", companyId));
     });
 
+    it("never lets signed-in users write or read someone else's audit trail", async () => {
+      const event = { firm_id: firmId, company_id: companyId, actor_id: userIds[0], action: "room.invite_created" };
+      const { error } = await alice.from("audit_events").insert(event);
+      expect(error).not.toBeNull();
+      await admin.from("audit_events").insert(event);
+      const { data } = await alice.from("audit_events").select("action").eq("company_id", companyId);
+      expect((data ?? []).length).toBeGreaterThan(0);
+      await expectNoRows(bob.from("audit_events").select("id").eq("company_id", companyId));
+    });
+
     it("keeps a firm's last owner from leaving", async () => {
       const { error } = await alice.from("firm_members").delete().eq("firm_id", firmId).eq("user_id", userIds[0]);
       expect(error).not.toBeNull();
@@ -220,6 +230,12 @@ describe.skipIf(!configured)("row-level security (live Supabase project)", () =>
       const gaps = await gapsRes.json();
       expect(gaps).toEqual(detectGaps(DEMO_RESPONSES));
       expect(JSON.stringify(gaps)).not.toMatch(/positions|predictions/);
+
+      // The audit trail records who issued links and who submitted, never what they said.
+      const { data: trail } = await admin.from("audit_events").select("action, metadata").eq("company_id", companyId);
+      const actions = (trail ?? []).map((e: { action: string }) => e.action);
+      expect(actions.filter((a: string) => a === "room.response_submitted")).toHaveLength(STAKEHOLDER_IDS.length);
+      expect(JSON.stringify(trail)).not.toMatch(/positions|predictions/);
 
       // Status shows who has submitted, never what they said.
       const status = await (await asOwner(`/api/companies/${companyId}/invites`)).json();

@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { decide, type CompanyAction, type FirmRole, type Principal } from "../authz/policy";
 import { isSupabaseConfigured } from "../env";
 import { getAdminClient } from "../supabase/admin";
 import { getServerClient } from "../supabase/server";
@@ -19,17 +20,61 @@ export const notFound = () => json({ error: "Not found" }, 404);
 
 const uuid = z.uuid();
 
+export interface CompanyAccess {
+  company: { id: string; name: string; ownerId: string | null; firmId: string | null };
+  principal: Principal;
+}
+
+/** Postgres "undefined column": the firms migration hasn't been applied yet. */
+const UNDEFINED_COLUMN = "42703";
+
 /**
- * Returns the company if the signed-in user may work on it: before the firms
- * migration, its owner; after it, any member of its firm. Access is decided
- * by RLS, so anyone else's select simply returns no row.
+ * The company and the caller's standing on it, or null when they can't see it.
+ * Visibility is decided by RLS (before the firms migration, owner-only; after
+ * it, firm members); the firm role then feeds `decide()` for finer actions.
  */
-export async function accessibleCompany(id: string): Promise<{ id: string; name: string } | null> {
+export async function companyAccess(id: string): Promise<CompanyAccess | null> {
   if (!uuid.safeParse(id).success) return null;
   const supabase = await getServerClient();
   if (!supabase) return null;
-  const { data } = await supabase.from("companies").select("id, name").eq("id", id).maybeSingle<{ id: string; name: string }>();
-  return data ?? null;
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims.sub;
+  if (!userId) return null;
+
+  type Row = { id: string; name: string; owner_id: string | null; firm_id?: string };
+  const withFirm = await supabase.from("companies").select("id, name, owner_id, firm_id").eq("id", id).maybeSingle<Row>();
+  if (withFirm.error?.code === UNDEFINED_COLUMN) {
+    // Pre-firms schema: RLS only shows a company to its owner.
+    const { data } = await supabase.from("companies").select("id, name, owner_id").eq("id", id).maybeSingle<Row>();
+    if (!data) return null;
+    return { company: { id: data.id, name: data.name, ownerId: data.owner_id, firmId: null }, principal: { id: userId, firmRole: "owner" } };
+  }
+  const row = withFirm.data;
+  if (!row?.firm_id) return null;
+  const { data: membership } = await supabase
+    .from("firm_members")
+    .select("role")
+    .eq("firm_id", row.firm_id)
+    .eq("user_id", userId)
+    .maybeSingle<{ role: FirmRole }>();
+  return {
+    company: { id: row.id, name: row.name, ownerId: row.owner_id, firmId: row.firm_id },
+    principal: { id: userId, firmRole: membership?.role ?? null },
+  };
+}
+
+/** The policy decision for one action on an accessible company. */
+export const allows = (access: CompanyAccess, action: CompanyAction) =>
+  decide(access.principal, { kind: "company", ownerId: access.company.ownerId }, action);
+
+/**
+ * The company's access context when the caller may perform `action`, else
+ * null. Callers answer null with `notFound()`, so a refusal never reveals
+ * that the company exists.
+ */
+export async function authorize(id: string, action: CompanyAction): Promise<CompanyAccess | null> {
+  const access = await companyAccess(id);
+  return access && allows(access, action).allowed ? access : null;
 }
 
 /** The invite a raw token belongs to, looked up by its hash. */

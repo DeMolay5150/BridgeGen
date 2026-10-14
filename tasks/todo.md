@@ -96,5 +96,5 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 - [x] Task 6.2: `lib/statements`: linked 3-statement engine (balances every year) + seeded Monte Carlo; Simulator panel with statements, distribution, explainer; Excel copy/paste (TSV)
 - [x] Task 6.3: React Flow map in the Decision Room: ownership cascade + governance voting tree
 - [x] Task 6.4: Red Team deck: .pptx / .pdf / Marp .md
-- [ ] Task 6.5: Policy engine + audit log (migration, server-written) wired into room routes
+- [x] Task 6.5: Policy engine + audit log (migration, server-written) wired into room routes
 - [ ] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels

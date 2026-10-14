@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { detectGaps } from "@/lib/room/gaps";
-import { json, loadResponses, notFound, accessibleCompany } from "@/lib/room/server";
+import { authorize, json, loadResponses, notFound } from "@/lib/room/server";
 
 /**
  * The facilitator's view of the room: completion plus disagreements and
@@ -9,7 +9,7 @@ import { json, loadResponses, notFound, accessibleCompany } from "@/lib/room/ser
  */
 export async function GET(_request: NextRequest, ctx: RouteContext<"/api/companies/[id]/gaps">) {
   const { id } = await ctx.params;
-  const company = await accessibleCompany(id);
-  if (!company) return notFound();
-  return json(detectGaps(await loadResponses(company.id)));
+  const access = await authorize(id, "room:view_gaps");
+  if (!access) return notFound();
+  return json(detectGaps(await loadResponses(access.company.id)));
 }

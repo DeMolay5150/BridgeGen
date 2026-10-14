@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildRedTeamDeck, toMarp, type Deck } from "@/lib/deck/redteam";
 import { downloadBlob, exportFileName } from "@/lib/download";
+import { reportExport } from "@/lib/room/use-room-api";
 import { useSimulatorStore } from "@/lib/simulator/store";
 
 type Format = "pptx" | "pdf" | "md";
@@ -50,10 +51,11 @@ export function DeckDialog() {
     setWorking(format);
     setFailed(false);
     try {
-      const { baseline, scenario, governance } = useSimulatorStore.getState();
+      const { baseline, scenario, governance, companyId } = useSimulatorStore.getState();
       const generatedAt = new Date();
       const deck = buildRedTeamDeck({ companyName, preparedBy: preparedBy.trim(), baseline, scenario, governance, generatedAt });
       downloadBlob(await render(deck, format), exportFileName(companyName, "red-team-deck", format, generatedAt));
+      reportExport(companyId, "deck.exported", format);
     } catch {
       setFailed(true);
     } finally {

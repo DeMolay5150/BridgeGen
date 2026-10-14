@@ -56,14 +56,31 @@ export function useInviteStatus(companyId: string | null) {
   return { ...result, data: result.data?.stakeholders ?? null };
 }
 
-/** Creates or replaces a stakeholder's private link; returns the URL (shown once) or null on failure. */
-export async function createInvite(companyId: string, stakeholder: StakeholderId): Promise<string | null> {
+/** Creates or replaces a stakeholder's private link. The URL is shown once; refusals carry the server's reason. */
+export async function createInvite(
+  companyId: string,
+  stakeholder: StakeholderId,
+): Promise<{ url: string } | { error: string }> {
   const res = await fetch(`/api/companies/${companyId}/invites`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ stakeholder }),
   }).catch(() => null);
-  if (!res?.ok) return null;
-  const body = (await res.json()) as { url?: string };
-  return body.url ?? null;
+  const body = res ? ((await res.json().catch(() => ({}))) as { url?: string; error?: string }) : {};
+  if (res?.ok && body.url) return { url: body.url };
+  return { error: res?.status === 403 && body.error ? body.error : "Couldn't create the link. Try again." };
+}
+
+/** Tells the audit trail about a client-side export. Best effort: never blocks or fails the export. */
+export function reportExport(
+  companyId: string | null,
+  action: "report.exported" | "deck.exported",
+  format: "pdf" | "pptx" | "md",
+) {
+  if (!companyId) return;
+  void fetch(`/api/companies/${companyId}/audit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, format }),
+  }).catch(() => undefined);
 }

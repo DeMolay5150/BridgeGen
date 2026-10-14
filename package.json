@@ -10,7 +10,8 @@
     "lint": "eslint",
     "type-check": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:rls": "vitest run --config vitest.rls.config.mts"
+    "test:rls": "vitest run --config vitest.rls.config.mts",
+    "test:migrations": "node tests/migrations/migrations.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -32,6 +33,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.3.7",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
     "@types/react": "^19",

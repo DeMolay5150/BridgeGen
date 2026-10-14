@@ -20,6 +20,7 @@ import { downloadBlob, exportFileName } from "@/lib/download";
 import { REPORT_SECTIONS, buildReport, type ReportSectionId } from "@/lib/report/build";
 import { detectGaps } from "@/lib/room/gaps";
 import type { RoomGaps } from "@/lib/room/types";
+import { reportExport } from "@/lib/room/use-room-api";
 import { selectSnapshot, useSimulatorStore } from "@/lib/simulator/store";
 
 const MAX_NAME = 120;
@@ -84,6 +85,7 @@ export function ExportDialog({ gaps }: { gaps: RoomGaps | null }) {
       ]);
       const blob = await pdf(<ExecutiveSummaryDocument report={report} />).toBlob();
       downloadBlob(blob, exportFileName(companyName, "executive-summary", "pdf", generatedAt));
+      reportExport(useSimulatorStore.getState().companyId, "report.exported", "pdf");
       setStatus("idle");
       setOpen(false);
     } catch {
