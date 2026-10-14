@@ -109,5 +109,5 @@ Note: BridgeGen is one repository; "across the 10 modules" = the ten capability 
 - [x] Task 7.3: Shared PDF chrome: header, numbered footer, optional watermark (Confidential / Draft / Client copy) for both PDF generators
 - [x] Task 7.4: IC deck (.pptx / PDF / Marp) from Simulator + Decision Room: scenario vs today, statements, Monte Carlo, liquidity, governance, stress, room gaps
 - [x] Task 7.5: Presentation mode (`/present`): full-screen, client-safe, four simplified levers, live KPIs
-- [ ] Task 7.6: `WALKTHROUGH-SCRIPT.md`, `/walkthrough` landing page, Remotion project in `video/` with a render script
+- [~] Task 7.6: `WALKTHROUGH-SCRIPT.md` written; still to do: `/walkthrough` page and Remotion project in `video/` (exclude from tsconfig + eslint; check Remotion licence)
 
