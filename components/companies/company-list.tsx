@@ -129,7 +129,7 @@ export function CompanyList() {
   if (!isSupabaseConfigured()) {
     return <p className="text-sm text-muted-foreground">Accounts aren&apos;t set up on this deployment.</p>;
   }
-  if (!ready) return <p className="text-sm text-muted-foreground">Loadingâ€¦</p>;
+  if (!ready) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (!user) {
     return (
       <Card>
@@ -228,7 +228,7 @@ export function CompanyList() {
           )}
         </div>
         {companies === null ? (
-          <p className="text-sm text-muted-foreground">Loadingâ€¦</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         ) : companies.length === 0 ? (
           <p className="text-sm text-muted-foreground">No companies yet. Create your first one above.</p>
         ) : (
