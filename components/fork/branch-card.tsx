@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import type { LiquidityAlert } from "@/lib/alerts/liquidity";
 import { BRANCH_OPTIONS, type ResolvedBranch } from "@/lib/projection/branches";
 import type { BranchSpec, YearPoint } from "@/lib/projection/types";
 import { describeScenario } from "@/lib/simulator/describe";
@@ -21,6 +22,7 @@ export function BranchCard({
   spec,
   resolved,
   points,
+  liquidity,
   onChange,
 }: {
   name: string;
@@ -31,6 +33,8 @@ export function BranchCard({
   resolved: ResolvedBranch;
   /** The branch's projection, year 0 to 10. */
   points: YearPoint[];
+  /** Liquidity and covenant alerts for the branch (three-statement base case). */
+  liquidity: LiquidityAlert[];
   onChange: (spec: BranchSpec) => void;
 }) {
   const selectId = useId();
@@ -90,6 +94,11 @@ export function BranchCard({
             <span className="font-mono text-lg text-metric tabular-nums">{formatMoney(end)}</span>
           </div>
           <DeltaBadge delta={moneyDelta(end, start)} against="over 10 years" />
+          <p className={cn("text-xs", liquidity.length === 0 ? "text-positive" : liquidity.some((a) => a.severity === "critical") ? "text-critical" : "text-caution")}>
+            {liquidity.length === 0
+              ? "Liquidity: no covenant or cash alerts"
+              : `Liquidity: ${liquidity.map((a) => `${a.title.toLowerCase()} (${a.years.length === 1 ? `Y${a.years[0]}` : `Y${a.years[0]}–Y${a.years.at(-1)}`})`).join(", ")}`}
+          </p>
           <SparkArea
             values={points.map((p) => p.shareholderValue)}
             color={color}

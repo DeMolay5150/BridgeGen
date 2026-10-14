@@ -4,7 +4,9 @@ import { SliderRow } from "@/components/slider-row";
 import { ExplainButton } from "@/components/explain/explain-button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { explainForkLead } from "@/lib/explain/fork";
+import { liquidityAlerts } from "@/lib/alerts/liquidity";
 import { resolveBranch } from "@/lib/projection/branches";
+import { DEFAULT_STATEMENT_ASSUMPTIONS, buildStatements } from "@/lib/statements/model";
 import { ASSUMPTION_RANGES, HORIZONS, project } from "@/lib/projection/model";
 import { formatMoney, formatPercent, formatSignedPercent } from "@/lib/simulator/format";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
@@ -30,6 +32,10 @@ export function ForkTheFuture() {
   const a = project(baseline, branchA.scenario, branchA.governanceScore, fork.assumptions);
   const b = project(baseline, branchB.scenario, branchB.governanceScore, fork.assumptions);
 
+  // Same engine as the Red Team liquidity view; branch-level governance doesn't change cash flows.
+  const liquidityA = liquidityAlerts(buildStatements(baseline, branchA.scenario, { ...DEFAULT_STATEMENT_ASSUMPTIONS, revenueGrowth: fork.assumptions.ebitdaGrowth }));
+  const liquidityB = liquidityAlerts(buildStatements(baseline, branchB.scenario, { ...DEFAULT_STATEMENT_ASSUMPTIONS, revenueGrowth: fork.assumptions.ebitdaGrowth }));
+
   const identical = a.every((point, i) => Math.abs(point.shareholderValue - b[i].shareholderValue) < 1e-9);
   const labels = { a: branchA.label, b: branchB.label };
 
@@ -50,6 +56,7 @@ export function ForkTheFuture() {
           spec={fork.a}
           resolved={branchA}
           points={a}
+          liquidity={liquidityA}
           onChange={(spec) => setFork({ a: spec })}
         />
         <BranchCard
@@ -59,6 +66,7 @@ export function ForkTheFuture() {
           spec={fork.b}
           resolved={branchB}
           points={b}
+          liquidity={liquidityB}
           onChange={(spec) => setFork({ b: spec })}
         />
         <Card>

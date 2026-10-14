@@ -16,6 +16,7 @@ import { formatPercent } from "@/lib/simulator/format";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import type { Severity } from "@/lib/simulator/types";
 import { cn } from "@/lib/utils";
+import { LiquidityCard } from "./liquidity-card";
 import { ShockCard } from "./shock-card";
 
 const TONE: Record<Severity, string> = {
@@ -123,6 +124,8 @@ export function RedTeam() {
           </div>
         </CardContent>
       </Card>
+
+      <LiquidityCard />
 
       <section className="grid gap-4" aria-labelledby="shocks-heading">
         <h2 id="shocks-heading" className="font-heading text-lg font-semibold">
