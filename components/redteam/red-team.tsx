@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { DeckDialog } from "@/components/deck/deck-dialog";
 import { BriefCard } from "@/components/narrative/brief-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { redTeamBrief } from "@/lib/narrative/redteam";
@@ -65,10 +66,15 @@ export function RedTeam() {
   return (
     <div className="grid gap-8">
       <header className="grid gap-2">
-        <p className="font-mono text-xs uppercase tracking-widest text-critical">Red Team Mode</p>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-white md:text-3xl">
-          Break the plan before reality does
-        </h1>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="grid gap-2">
+            <p className="font-mono text-xs uppercase tracking-widest text-critical">Red Team Mode</p>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight text-white md:text-3xl">
+              Break the plan before reality does
+            </h1>
+          </div>
+          <DeckDialog />
+        </div>
         <p className="text-sm text-muted-foreground">
           Attacking your scenario: <span className="font-mono text-xs text-foreground">{describeScenario(scenario, governanceScore)}</span>{" "}
           <Link href="/simulator" className="underline underline-offset-4">

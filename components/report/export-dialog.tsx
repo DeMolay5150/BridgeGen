@@ -16,18 +16,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { downloadBlob, exportFileName } from "@/lib/download";
 import { REPORT_SECTIONS, buildReport, type ReportSectionId } from "@/lib/report/build";
 import { detectGaps } from "@/lib/room/gaps";
 import type { RoomGaps } from "@/lib/room/types";
 import { selectSnapshot, useSimulatorStore } from "@/lib/simulator/store";
 
 const MAX_NAME = 120;
-
-/** "Hartwell Family Holdings" → "hartwell-family-holdings-executive-summary-2026-10-14.pdf" */
-function fileName(company: string, date: Date): string {
-  const slug = company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "bridgegen";
-  return `${slug}-executive-summary-${date.toISOString().slice(0, 10)}.pdf`;
-}
 
 function SectionToggle({
   label,
@@ -88,13 +83,7 @@ export function ExportDialog({ gaps }: { gaps: RoomGaps | null }) {
         import("./executive-summary-pdf"),
       ]);
       const blob = await pdf(<ExecutiveSummaryDocument report={report} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName(companyName, generatedAt);
-      link.click();
-      // Give the browser time to start the download before releasing the blob.
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      downloadBlob(blob, exportFileName(companyName, "executive-summary", "pdf", generatedAt));
       setStatus("idle");
       setOpen(false);
     } catch {
