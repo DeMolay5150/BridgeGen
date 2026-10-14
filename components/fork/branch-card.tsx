@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { BRANCH_OPTIONS, type ResolvedBranch } from "@/lib/projection/branches";
 import type { BranchSpec, YearPoint } from "@/lib/projection/types";
 import { describeScenario } from "@/lib/simulator/describe";
-import { formatMoney, formatSignedMoney } from "@/lib/simulator/format";
+import { moneyDelta } from "@/lib/domain/delta";
+import { formatMoney } from "@/lib/simulator/format";
 import { cn } from "@/lib/utils";
 
 export function BranchCard({
@@ -88,7 +89,7 @@ export function BranchCard({
             <span className="text-xs text-muted-foreground">Shareholder value, year 10</span>
             <span className="font-mono text-lg text-metric tabular-nums">{formatMoney(end)}</span>
           </div>
-          <DeltaBadge delta={end - start} display={formatSignedMoney(end - start)} against="over 10 years" tolerance={0.05} />
+          <DeltaBadge delta={moneyDelta(end, start)} against="over 10 years" />
           <SparkArea
             values={points.map((p) => p.shareholderValue)}
             color={color}

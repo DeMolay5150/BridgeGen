@@ -12,7 +12,8 @@ import { STAKEHOLDER_LABELS, scoreScenario } from "../simulator/alignment";
 import { BASELINE_LIMITS, clamp, neutralScenario } from "../simulator/defaults";
 import { describeScenario } from "../simulator/describe";
 import { simulate } from "../simulator/engine";
-import { formatMoney, formatMultiple, formatPercent, formatSignedMoney } from "../simulator/format";
+import { FLAT_DISPLAY, MONEY_TOLERANCE, moneyDelta, multipleDelta } from "../domain/delta";
+import { formatMoney, formatMultiple, formatPercent } from "../simulator/format";
 import type { RiskSignal, Severity, SimulationResult } from "../simulator/types";
 
 export type ReportSectionId = "capital" | "governance" | "redTeam" | "room";
@@ -82,34 +83,22 @@ export interface ReportData {
   };
 }
 
-/** Changes under $50K (or 0.05x) are flat. */
-const FLAT = 0.05;
-
-const NO_CHANGE = "–";
+const NO_CHANGE = FLAT_DISPLAY;
 
 /** `higherIsBetter` null: the change is reported but not judged (e.g. debt taken on for a recap). */
 function moneyRow(label: string, today: number, scenario: number, higherIsBetter: boolean | null): KpiRow {
-  const change = scenario - today;
-  const flat = Math.abs(change) < FLAT;
-  return {
-    label,
-    today: formatMoney(today),
-    scenario: formatMoney(scenario),
-    change: flat ? NO_CHANGE : formatSignedMoney(change),
-    good: flat || higherIsBetter === null ? null : change > 0 === higherIsBetter,
-  };
+  const delta = moneyDelta(scenario, today, higherIsBetter);
+  return { label, today: formatMoney(today), scenario: formatMoney(scenario), change: delta.display, good: delta.good };
 }
 
 function ratioRow(label: string, today: number | null, scenario: number | null, higherIsBetter: boolean): KpiRow {
-  const comparable = today !== null && scenario !== null;
-  const change = comparable ? scenario - today : 0;
-  const flat = !comparable || Math.abs(change) < FLAT;
+  const delta = multipleDelta(scenario, today, higherIsBetter);
   return {
     label,
     today: formatMultiple(today),
     scenario: formatMultiple(scenario),
-    change: flat ? NO_CHANGE : `${change > 0 ? "+" : "−"}${Math.abs(change).toFixed(1)}x`,
-    good: flat ? null : change > 0 === higherIsBetter,
+    change: delta?.display ?? NO_CHANGE,
+    good: delta?.good ?? null,
   };
 }
 
@@ -187,7 +176,7 @@ export function buildReport(input: ReportInput): ReportData {
         verdict: s.verdict,
         equity: `${formatMoney(s.before.equityValue)} → ${formatMoney(s.after.equityValue)}`,
         valueDestroyed: formatMoney(Math.max(s.valueDestroyed, 0)),
-        governanceSaving: s.dividend && s.dividend.valueSaved > FLAT ? formatMoney(s.dividend.valueSaved) : NO_CHANGE,
+        governanceSaving: s.dividend && s.dividend.valueSaved > MONEY_TOLERANCE ? formatMoney(s.dividend.valueSaved) : NO_CHANGE,
       })),
     },
     room: {

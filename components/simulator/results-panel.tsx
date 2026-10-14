@@ -11,7 +11,8 @@ import {
 } from "@/lib/explain/simulator";
 import type { Explanation } from "@/lib/explain/types";
 import { COVERAGE_CAUTION, COVERAGE_CRITICAL } from "@/lib/simulator/engine";
-import { formatMoney, formatMultiple, formatPercent, formatSignedMoney } from "@/lib/simulator/format";
+import { moneyDelta, multipleDelta } from "@/lib/domain/delta";
+import { formatMoney, formatMultiple, formatPercent } from "@/lib/simulator/format";
 import type { Baseline, Holders, Scenario, Severity, SimulationResult } from "@/lib/simulator/types";
 
 const SEVERITY_STYLES: Record<Severity, string> = {
@@ -123,26 +124,10 @@ function coverageTone(coverage: number | null): Severity | "metric" {
   return "positive";
 }
 
-/** Money moves under $50K read as "No change". */
-const MONEY_TOLERANCE = 0.05;
-const COVERAGE_TOLERANCE = 0.05;
-
-function moneyDelta(now: number, then: number) {
-  const delta = now - then;
-  return <DeltaBadge delta={delta} display={formatSignedMoney(delta)} tolerance={MONEY_TOLERANCE} />;
-}
-
 /** Only comparable when both sides carry debt. */
-function coverageDelta(now: number | null, then: number | null) {
-  if (now === null || then === null) return undefined;
-  const delta = now - then;
-  return (
-    <DeltaBadge
-      delta={delta}
-      display={`${delta >= 0 ? "+" : "−"}${Math.abs(delta).toFixed(1)}x`}
-      tolerance={COVERAGE_TOLERANCE}
-    />
-  );
+function coverageBadge(now: number | null, then: number | null) {
+  const delta = multipleDelta(now, then, true);
+  return delta ? <DeltaBadge delta={delta} /> : undefined;
 }
 
 export function ResultsPanel({
@@ -165,7 +150,7 @@ export function ResultsPanel({
           label="Enterprise value"
           value={formatMoney(result.enterpriseValue)}
           detail={`${formatMoney(result.adjustedEbitda)} EBITDA × ${formatMultiple(result.effectiveMultiple)}`}
-          delta={moneyDelta(result.enterpriseValue, today.enterpriseValue)}
+          delta={<DeltaBadge delta={moneyDelta(result.enterpriseValue, today.enterpriseValue)} />}
           explain={() => explainEnterpriseValue(baseline, scenario)}
         />
         <Metric
@@ -177,7 +162,7 @@ export function ResultsPanel({
               : `After ${formatMoney(result.totalDebt)} of debt`
           }
           tone={result.equityValue <= 0 ? "critical" : "metric"}
-          delta={moneyDelta(result.equityValue, today.equityValue)}
+          delta={<DeltaBadge delta={moneyDelta(result.equityValue, today.equityValue)} />}
           explain={() => explainEquity(baseline, scenario)}
         />
         <Metric
@@ -198,7 +183,7 @@ export function ResultsPanel({
           value={formatMultiple(result.interestCoverage)}
           detail={`Debt ${formatMultiple(result.debtToEbitda)} EBITDA · ${formatMoney(result.interestExpense)}/yr interest`}
           tone={coverageTone(result.interestCoverage)}
-          delta={coverageDelta(result.interestCoverage, today.interestCoverage)}
+          delta={coverageBadge(result.interestCoverage, today.interestCoverage)}
           explain={() => explainCoverage(baseline, scenario)}
         />
       </div>

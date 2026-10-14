@@ -104,7 +104,7 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 
 ## Phase 7: Client delivery (presentation mode, IC deck, liquidity alerts, walkthrough)
 Note: BridgeGen is one repository; "across the 10 modules" = the ten capability areas inside it.
-- [ ] Task 7.1: Shared KPI delta type (`lib/domain/delta.ts`) used by the Simulator cards, PDF report and decks
+- [x] Task 7.1: Shared KPI delta type (`lib/domain/delta.ts`) used by the Simulator cards, PDF report and decks
 - [ ] Task 7.2: Liquidity & covenant alerts from the three-statement model (base and downturn case), today vs scenario, on Red Team and Fork
 - [ ] Task 7.3: Shared PDF chrome: header, numbered footer, optional watermark (Confidential / Draft / Client copy) for both PDF generators
 - [ ] Task 7.4: IC deck (.pptx / PDF / Marp) from Simulator + Decision Room: scenario vs today, statements, Monte Carlo, liquidity, governance, stress, room gaps
