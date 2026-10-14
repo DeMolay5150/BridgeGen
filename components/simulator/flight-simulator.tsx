@@ -5,6 +5,7 @@ import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { neutralScenario } from "@/lib/simulator/defaults";
 import { simulate } from "@/lib/simulator/engine";
+import { FinancialModel } from "@/components/statements/financial-model";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { BaselinePanel } from "./baseline-panel";
 import { DecisionMatrix } from "./decision-matrix";
@@ -53,6 +54,8 @@ export function FlightSimulator() {
       </div>
 
       <DecisionMatrix />
+
+      <FinancialModel />
     </div>
   );
 }
