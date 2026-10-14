@@ -56,3 +56,23 @@
   - Lever attribution: re-run with each lever reset to today; interactions reported as their own row
   - Explain popovers on simulator metrics, matrix scores, governance score, fork 10-year gap, red-team shocks
   - 21 Vitest tests (hand-checked text, attribution sums, headline consistency)
+
+## Phase 5: Enterprise Upgrade (audit against shadcn/ui, Tremor, FinRobot, taxonomy, react-pdf)
+Audit (2026-10-14), baseline 152 tests / type-check / lint green:
+- Bug: `components/companies/company-list.tsx` has double-encoded UTF-8 ("Loadingâ€¦") in two places.
+- shadcn: inputs/sliders/selects/popovers already on base-nova; no Dialog primitive yet (needed for the export flow).
+- Tremor: KPI cards show absolute values only (no delta vs. Today, no sparklines); Fork branch cards show no trend.
+- FinRobot: no LLM anywhere (glass-box rule: no AI-generated numbers). Red Team / Governance have step lists but no
+  "bottom line up front" executive summary. Adopt FinRobot's *structure* (data → analysis → thesis → actions)
+  deterministically; no model calls.
+- taxonomy: RLS is single-owner only, no firm/workspace tenancy. Mutating routes accept any Content-Type
+  (cross-site text/plain form bodies parse as JSON) and don't check Origin.
+- react-pdf: no export.
+
+- [x] Task 5.1: Fix mojibake in company list
+- [x] Task 5.2: Deterministic M&A-banker executive briefs (`lib/narrative/`) for Red Team + Governance, with tests; brief card on both pages
+- [ ] Task 5.3: Tremor-style KPI cards: delta-vs-Today badges in the simulator; sparkline + delta on Fork branch cards
+- [ ] Task 5.4: shadcn Dialog + "Export executive summary" dialog in the Decision Room
+- [ ] Task 5.5: `@react-pdf/renderer` multi-page branded PDF (cover/BLUF, capital allocation, governance, red team, room gaps; never raw answers); lazy-loaded
+- [ ] Task 5.6: Route hardening: JSON-only + same-origin checks on mutating routes, tested
+- [ ] Task 5.7: Multi-seat firms migration (firms, firm_members, companies.firm_id, membership RLS) + RLS tests. Written, NOT pushed to the live project without sign-off

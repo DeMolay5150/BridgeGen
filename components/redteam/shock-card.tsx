@@ -4,8 +4,7 @@ import Link from "next/link";
 import { ExplainButton } from "@/components/explain/explain-button";
 import { explainShock } from "@/lib/explain/redteam";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { GovernanceCategoryId } from "@/lib/governance/types";
-import { describeChanges } from "@/lib/redteam/describe";
+import { GOVERNANCE_AREA, describeChanges } from "@/lib/redteam/describe";
 import type { ShockResult, StressMetrics, Verdict } from "@/lib/redteam/types";
 import { formatMoney, formatMultiple } from "@/lib/simulator/format";
 import { cn } from "@/lib/utils";
@@ -14,13 +13,6 @@ const VERDICT: Record<Verdict, { label: string; className: string }> = {
   survives: { label: "Survives", className: "text-positive bg-positive/10" },
   strained: { label: "Strained", className: "text-caution bg-caution/10" },
   breaks: { label: "Breaks", className: "text-critical bg-critical/10" },
-};
-
-/** What "fixing" each governance category means, in a sentence fragment. */
-const GOVERNANCE_AREA: Record<GovernanceCategoryId, string> = {
-  authority: "authority and succession planning",
-  board: "board",
-  voting: "shareholder agreements",
 };
 
 const ROWS: { label: string; value: (m: StressMetrics) => string }[] = [

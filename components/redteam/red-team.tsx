@@ -2,7 +2,9 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { BriefCard } from "@/components/narrative/brief-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { redTeamBrief } from "@/lib/narrative/redteam";
 import { breakingPoints } from "@/lib/redteam/breaking";
 import { SHOCKS, runShock } from "@/lib/redteam/shocks";
 import type { BreakingPoint } from "@/lib/redteam/types";
@@ -48,6 +50,7 @@ export function RedTeam() {
     () => SHOCKS.map((s) => runShock(baseline, scenario, governanceAnswers, s.id)),
     [baseline, scenario, governanceAnswers],
   );
+  const brief = useMemo(() => redTeamBrief(shocks, yours, today), [shocks, yours, today]);
 
   const todayById = Object.fromEntries(today.map((p) => [p.id, p.threshold]));
   const yourClosest = closest(yours) ?? Infinity;
@@ -73,6 +76,8 @@ export function RedTeam() {
           </Link>
         </p>
       </header>
+
+      <BriefCard brief={brief} description="Investment-committee view of the stress results below." />
 
       <Card>
         <CardHeader>

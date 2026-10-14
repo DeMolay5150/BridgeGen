@@ -6,7 +6,9 @@ import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExplainButton } from "@/components/explain/explain-button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BriefCard } from "@/components/narrative/brief-card";
 import { explainGovernance } from "@/lib/explain/governance";
+import { governanceBrief } from "@/lib/narrative/governance";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/segmented";
 import {
@@ -162,6 +164,7 @@ export function GovernanceCalculator() {
     [baseline, scenario],
   );
   const atRisk = governanceDebtValue(enterpriseValue, governance.score);
+  const brief = useMemo(() => governanceBrief(answers, enterpriseValue), [answers, enterpriseValue]);
   const tone = scoreTone(governance.score);
   const biggestGaps = governance.items
     .filter((item) => item.points > 0)
@@ -184,6 +187,8 @@ export function GovernanceCalculator() {
           Reset to demo
         </Button>
       </header>
+
+      <BriefCard brief={brief} description="How a buyer, lender or investment committee would read this assessment." />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
         <div className="grid gap-6">
