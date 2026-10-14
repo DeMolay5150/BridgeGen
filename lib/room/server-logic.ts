@@ -10,7 +10,26 @@ export interface ResponseRow {
   submitted: unknown;
 }
 
-export type ParsedBody<T> = { ok: true; data: T } | { ok: false; status: 400 | 413; error: string };
+export type ParsedBody<T> = { ok: true; data: T } | { ok: false; status: 400 | 403 | 413 | 415; error: string };
+
+/**
+ * Cross-site request checks for state-changing routes. A browser can POST a
+ * `text/plain` form cross-site without a CORS preflight, and its body can be
+ * shaped to parse as JSON; requiring `application/json` forces a preflight,
+ * and a present `Origin` must be one of ours. (Session cookies are also
+ * SameSite=Lax; this is defence in depth, and covers the token-only route.)
+ */
+export function guardMutation(
+  headers: { contentType: string | null; origin: string | null },
+  allowedOrigins: string[],
+): Extract<ParsedBody<never>, { ok: false }> | null {
+  const mediaType = headers.contentType?.split(";")[0].trim().toLowerCase();
+  if (mediaType !== "application/json") return { ok: false, status: 415, error: "Expected application/json" };
+  if (headers.origin !== null && !allowedOrigins.includes(headers.origin)) {
+    return { ok: false, status: 403, error: "Cross-origin request refused" };
+  }
+  return null;
+}
 
 /** Validates a raw request body. Error messages never echo the submitted values. */
 export function parseBody<T>(text: string, schema: z.ZodType<T>): ParsedBody<T> {

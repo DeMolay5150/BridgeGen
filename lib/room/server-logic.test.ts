@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { detectGaps } from "./gaps";
 import { applyResponsePatch } from "./response";
 import { responseBodySchema } from "./schema";
-import { parseBody, rowsToResponses } from "./server-logic";
+import { guardMutation, parseBody, rowsToResponses } from "./server-logic";
 import { DEMO_RESPONSES } from "./topics";
 
 describe("parseBody", () => {
@@ -56,5 +56,26 @@ describe("applyResponsePatch", () => {
 
   it("starts from an empty response", () => {
     expect(applyResponsePatch(undefined, { submitted: true })).toEqual({ positions: {}, predictions: {}, submitted: true });
+  });
+});
+
+describe("guardMutation", () => {
+  const ours = ["https://bridgegen.example.com"];
+  const json = "application/json";
+
+  it("lets same-origin JSON through, and requests without an Origin header (non-browser clients)", () => {
+    expect(guardMutation({ contentType: json, origin: ours[0] }, ours)).toBeNull();
+    expect(guardMutation({ contentType: "application/json; charset=utf-8", origin: null }, ours)).toBeNull();
+  });
+
+  it("refuses the content types a cross-site form can send without a preflight", () => {
+    for (const contentType of ["text/plain", "application/x-www-form-urlencoded", "multipart/form-data; boundary=x", null]) {
+      expect(guardMutation({ contentType, origin: ours[0] }, ours)).toMatchObject({ ok: false, status: 415 });
+    }
+  });
+
+  it("refuses JSON from another origin", () => {
+    expect(guardMutation({ contentType: json, origin: "https://evil.example" }, ours)).toMatchObject({ ok: false, status: 403 });
+    expect(guardMutation({ contentType: json, origin: "null" }, ours)).toMatchObject({ ok: false, status: 403 });
   });
 });

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { isSupabaseConfigured } from "../env";
 import { getAdminClient } from "../supabase/admin";
 import { getServerClient } from "../supabase/server";
-import { parseBody, rowsToResponses, type ResponseRow } from "./server-logic";
+import { guardMutation, parseBody, rowsToResponses, type ParsedBody, type ResponseRow } from "./server-logic";
 import { hashToken } from "./tokens";
 
 export { parseBody, rowsToResponses };
@@ -53,9 +53,16 @@ export async function loadResponses(companyId: string) {
   return rowsToResponses(data ?? []);
 }
 
-/** Reads and validates a JSON body, refusing oversized requests before parsing. */
-export async function readBody<T>(request: NextRequest, schema: z.ZodType<T>) {
-  return parseBody(await request.text(), schema);
+/**
+ * Reads and validates a JSON body for a state-changing route: refuses
+ * non-JSON and cross-origin requests, then oversized bodies before parsing.
+ */
+export async function readBody<T>(request: NextRequest, schema: z.ZodType<T>): Promise<ParsedBody<T>> {
+  const refused = guardMutation(
+    { contentType: request.headers.get("content-type"), origin: request.headers.get("origin") },
+    [...new Set([request.nextUrl.origin, siteOrigin(request)])],
+  );
+  return refused ?? parseBody(await request.text(), schema);
 }
 
 /** Public origin for invite links. */
