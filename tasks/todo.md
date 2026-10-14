@@ -75,4 +75,5 @@ Audit (2026-10-14), baseline 152 tests / type-check / lint green:
 - [x] Task 5.4: shadcn Dialog + "Export executive summary" dialog in the Decision Room
 - [x] Task 5.5: `@react-pdf/renderer` multi-page branded PDF (cover/BLUF, capital allocation, governance, red team, room gaps; never raw answers); lazy-loaded
 - [x] Task 5.6: Route hardening: JSON-only + same-origin checks on mutating routes, tested
-- [ ] Task 5.7: Multi-seat firms migration (firms, firm_members, companies.firm_id, membership RLS) + RLS tests. Written, NOT pushed to the live project without sign-off
+- [x] Task 5.7: Multi-seat firms migration (firms, firm_members, companies.firm_id, membership RLS) + RLS tests. Verified in PGlite (34 scenarios); NOT yet pushed to the live project (needs sign-off), so `pnpm test:rls` fails until `db push`
+  - Next: firm invite flow (add colleagues by email via a server route), firm switcher for new companies (they default to the personal firm)

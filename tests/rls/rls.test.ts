@@ -25,9 +25,11 @@ const run = randomUUID().slice(0, 8);
 let admin: SupabaseClient;
 let alice: SupabaseClient;
 let bob: SupabaseClient;
+let carol: SupabaseClient;
 let anon: SupabaseClient;
 const userIds: string[] = [];
 let companyId = "";
+let firmId = "";
 
 async function signedInUser(label: string): Promise<SupabaseClient> {
   const email = `rls-${label}-${run}@example.test`;
@@ -69,9 +71,11 @@ describe.skipIf(!configured)("row-level security (live Supabase project)", () =>
     anon = createClient(url, publishable, noSession);
     alice = await signedInUser("alice");
     bob = await signedInUser("bob");
-    const { data, error } = await alice.from("companies").insert({ name: `RLS check ${run}` }).select("id").single();
+    carol = await signedInUser("carol");
+    const { data, error } = await alice.from("companies").insert({ name: `RLS check ${run}` }).select("id, firm_id").single();
     if (error || !data) throw error ?? new Error("insert failed");
     companyId = data.id;
+    firmId = data.firm_id;
   });
 
   afterAll(async () => {
@@ -117,6 +121,51 @@ describe.skipIf(!configured)("row-level security (live Supabase project)", () =>
       .from("room_responses")
       .upsert({ company_id: companyId, stakeholder: "nextGen", positions: {}, predictions: {}, submitted: true });
     expect(writeError).not.toBeNull();
+  });
+
+  describe("multi-seat firms", () => {
+    it("files a new advisor's first company in their own personal firm, as its owner", async () => {
+      expect(firmId).toMatch(/^[0-9a-f-]{36}$/);
+      const { data } = await alice.from("firm_members").select("role").eq("firm_id", firmId);
+      expect(data).toEqual([{ role: "owner" }]);
+    });
+
+    it("refuses to let an outsider join a firm or create firms directly", async () => {
+      const { error } = await bob.from("firm_members").insert({ firm_id: firmId, user_id: userIds[1], role: "owner" });
+      expect(error).not.toBeNull();
+      const { error: firmError } = await bob.from("firms").insert({ name: "Shadow firm" });
+      expect(firmError).not.toBeNull();
+    });
+
+    it("shares the firm's companies with a member, who can edit but not delete them", async () => {
+      const { error } = await alice.from("firm_members").insert({ firm_id: firmId, user_id: userIds[2] });
+      expect(error).toBeNull();
+      const { data } = await carol.from("companies").select("id").eq("id", companyId);
+      expect(data).toHaveLength(1);
+      const { error: updateError } = await carol.from("companies").update({ name: `Shared ${run}` }).eq("id", companyId);
+      expect(updateError).toBeNull();
+      await carol.from("companies").delete().eq("id", companyId);
+      const { data: still } = await admin.from("companies").select("id").eq("id", companyId);
+      expect(still).toHaveLength(1);
+      // Restore the name the API tests below rely on.
+      await alice.from("companies").update({ name: `Renamed ${run}` }).eq("id", companyId);
+    });
+
+    it("stops a member promoting themself or adding colleagues", async () => {
+      const { data } = await carol.from("firm_members").update({ role: "owner" }).eq("firm_id", firmId).eq("user_id", userIds[2]).select();
+      expect(data ?? []).toHaveLength(0);
+      const { error } = await carol.from("firm_members").insert({ firm_id: firmId, user_id: userIds[1] });
+      expect(error).not.toBeNull();
+    });
+
+    it("never lets a firm member read raw Decision Room answers", async () => {
+      await expectNoRows(carol.from("room_responses").select("positions").eq("company_id", companyId));
+    });
+
+    it("keeps a firm's last owner from leaving", async () => {
+      const { error } = await alice.from("firm_members").delete().eq("firm_id", firmId).eq("user_id", userIds[0]);
+      expect(error).not.toBeNull();
+    });
   });
 
   describe.skipIf(!baseUrl)("API routes", () => {

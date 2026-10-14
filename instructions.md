@@ -11,7 +11,7 @@
 ## Supabase (persistence & auth)
 - **Setup:** copy `.env.example` → `.env.local` (URL, publishable key, secret key). Without it the app runs as the in-memory public demo; nothing breaks.
 - **Clients:** `lib/supabase/client.ts` (browser), `server.ts` (cookies, RLS as the user), `admin.ts` (secret key, `server-only`, room routes only, after authorization). `proxy.ts` refreshes sessions (Next 16's renamed middleware).
-- **Schema:** `supabase/migrations/`. `companies` and `room_invites` are owner-only via RLS; `room_responses` has RLS on with no policies and revoked privileges, so only the server reads it. Every new table needs RLS + a check in `tests/rls/`.
+- **Schema:** `supabase/migrations/`. Multi-seat firms (`20261014090000_firms.sql`): every advisor gets a personal firm at sign-up; `companies` (and their `room_invites`) are visible to members of the company's `firm_id` via RLS (`is_firm_member` / `firm_role` helpers). Roles: owner > admin > member; only creators, owners and admins delete companies; a firm always keeps one owner; firms are created via `create_firm()`. `room_responses` has RLS on with no policies and revoked privileges, so only the server reads it, for every role. Every new table needs RLS + a check in `tests/rls/`. Membership helpers are `STABLE`: never create a membership in the same statement whose RLS check depends on it.
 - **Confidentiality rule:** raw Decision Room answers never leave the server. Advisors get `detectGaps()` output only; stakeholders reach their own answers only via their invite token (stored as a SHA-256 hash).
 - **Persistence:** `lib/persistence/serialize.ts` validates and default-merges saved rows; `components/session-sync.tsx` autosaves the open company.
 

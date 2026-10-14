@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { inviteBodySchema } from "@/lib/room/schema";
-import { json, loadResponses, notFound, ownedCompany, readBody, siteOrigin } from "@/lib/room/server";
+import { json, loadResponses, notFound, accessibleCompany, readBody, siteOrigin } from "@/lib/room/server";
 import { generateToken, hashToken } from "@/lib/room/tokens";
 import { STAKEHOLDER_IDS } from "@/lib/simulator/alignment";
 import { getServerClient } from "@/lib/supabase/server";
@@ -8,7 +8,7 @@ import { getServerClient } from "@/lib/supabase/server";
 /** Invite status per stakeholder: whether a link exists and whether they've submitted. Never answers. */
 export async function GET(_request: NextRequest, ctx: RouteContext<"/api/companies/[id]/invites">) {
   const { id } = await ctx.params;
-  const company = await ownedCompany(id);
+  const company = await accessibleCompany(id);
   if (!company) return notFound();
 
   const supabase = (await getServerClient())!;
@@ -31,7 +31,7 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/compani
 /** Creates (or replaces) a stakeholder's private link. The raw token is returned once and never stored. */
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/companies/[id]/invites">) {
   const { id } = await ctx.params;
-  const company = await ownedCompany(id);
+  const company = await accessibleCompany(id);
   if (!company) return notFound();
 
   const body = await readBody(request, inviteBodySchema);
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/compani
 
   const token = generateToken();
   const supabase = (await getServerClient())!;
-  // RLS (owner-only) applies to this write; replacing the hash invalidates the old link.
+  // RLS (firm members only) applies to this write; replacing the hash invalidates the old link.
   const { error } = await supabase
     .from("room_invites")
     .upsert(

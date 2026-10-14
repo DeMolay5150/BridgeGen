@@ -20,10 +20,11 @@ export const notFound = () => json({ error: "Not found" }, 404);
 const uuid = z.uuid();
 
 /**
- * Returns the company if the signed-in user owns it. Ownership is decided by
- * RLS: a non-owner's select simply returns no row.
+ * Returns the company if the signed-in user may work on it: before the firms
+ * migration, its owner; after it, any member of its firm. Access is decided
+ * by RLS, so anyone else's select simply returns no row.
  */
-export async function ownedCompany(id: string): Promise<{ id: string; name: string } | null> {
+export async function accessibleCompany(id: string): Promise<{ id: string; name: string } | null> {
   if (!uuid.safeParse(id).success) return null;
   const supabase = await getServerClient();
   if (!supabase) return null;
