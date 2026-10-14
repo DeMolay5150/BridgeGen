@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { MonitorPlay, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { neutralScenario } from "@/lib/simulator/defaults";
 import { simulate } from "@/lib/simulator/engine";
@@ -39,6 +40,10 @@ export function FlightSimulator() {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" nativeButton={false} render={<Link href="/present" />}>
+            <MonitorPlay data-icon="inline-start" />
+            Present
+          </Button>
           <DeckDialog kind="ic" />
           <Button variant="outline" onClick={reset}>
             <RotateCcw data-icon="inline-start" />
