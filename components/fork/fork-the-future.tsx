@@ -46,15 +46,19 @@ export function ForkTheFuture() {
         <BranchCard
           name="Branch A"
           swatch="bg-chart-5"
+          color="var(--chart-5)"
           spec={fork.a}
           resolved={branchA}
+          points={a}
           onChange={(spec) => setFork({ a: spec })}
         />
         <BranchCard
           name="Branch B"
           swatch="bg-metric"
+          color="var(--metric)"
           spec={fork.b}
           resolved={branchB}
+          points={b}
           onChange={(spec) => setFork({ b: spec })}
         />
         <Card>

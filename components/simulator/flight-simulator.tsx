@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { neutralScenario } from "@/lib/simulator/defaults";
 import { simulate } from "@/lib/simulator/engine";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { BaselinePanel } from "./baseline-panel";
@@ -18,6 +19,10 @@ export function FlightSimulator() {
   const result = useMemo(
     () => simulate(baseline, scenario, governanceScore),
     [baseline, scenario, governanceScore],
+  );
+  const today = useMemo(
+    () => simulate(baseline, neutralScenario(baseline), governanceScore),
+    [baseline, governanceScore],
   );
 
   return (
@@ -43,7 +48,7 @@ export function FlightSimulator() {
           <ScenarioControls />
         </div>
         <div className="lg:sticky lg:top-6">
-          <ResultsPanel result={result} baseline={baseline} scenario={scenario} />
+          <ResultsPanel result={result} today={today} baseline={baseline} scenario={scenario} />
         </div>
       </div>
 

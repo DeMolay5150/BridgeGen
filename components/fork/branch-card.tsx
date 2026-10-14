@@ -1,30 +1,41 @@
 "use client";
 
 import { useId } from "react";
+import { DeltaBadge } from "@/components/delta-badge";
+import { SparkArea } from "@/components/spark-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { BRANCH_OPTIONS, type ResolvedBranch } from "@/lib/projection/branches";
-import type { BranchSpec } from "@/lib/projection/types";
+import type { BranchSpec, YearPoint } from "@/lib/projection/types";
 import { describeScenario } from "@/lib/simulator/describe";
+import { formatMoney, formatSignedMoney } from "@/lib/simulator/format";
 import { cn } from "@/lib/utils";
 
 export function BranchCard({
   name,
   swatch,
+  color,
   spec,
   resolved,
+  points,
   onChange,
 }: {
   name: string;
   swatch: string;
+  /** CSS colour matching `swatch`, for the sparkline. */
+  color: string;
   spec: BranchSpec;
   resolved: ResolvedBranch;
+  /** The branch's projection, year 0 to 10. */
+  points: YearPoint[];
   onChange: (spec: BranchSpec) => void;
 }) {
   const selectId = useId();
   const switchId = useId();
+  const start = points[0].shareholderValue;
+  const end = points[points.length - 1].shareholderValue;
 
   return (
     <Card>
@@ -72,6 +83,18 @@ export function BranchCard({
           />
         </div>
         <p className="font-mono text-xs text-muted-foreground">{describeScenario(resolved.scenario, resolved.governanceScore)}</p>
+        <div className="grid gap-2 border-t border-border pt-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-xs text-muted-foreground">Shareholder value, year 10</span>
+            <span className="font-mono text-lg text-metric tabular-nums">{formatMoney(end)}</span>
+          </div>
+          <DeltaBadge delta={end - start} display={formatSignedMoney(end - start)} against="over 10 years" tolerance={0.05} />
+          <SparkArea
+            values={points.map((p) => p.shareholderValue)}
+            color={color}
+            label={`${name} shareholder value: ${formatMoney(start)} now, ${formatMoney(end)} in year 10.`}
+          />
+        </div>
       </CardContent>
     </Card>
   );

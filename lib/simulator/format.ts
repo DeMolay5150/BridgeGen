@@ -13,6 +13,11 @@ export function formatMoney(millions: number): string {
   return moneyFormatter.format(millions * 1_000_000);
 }
 
+/** Formats a signed amount in USD millions, e.g. 4 → "+$4.0M", -4 → "−$4.0M". */
+export function formatSignedMoney(millions: number): string {
+  return `${millions >= 0 ? "+" : "−"}${formatMoney(Math.abs(millions))}`;
+}
+
 /** Formats a ratio as a multiple, e.g. 8 → "8.0x". Null renders as "n/a". */
 export function formatMultiple(value: number | null): string {
   return value === null ? "n/a" : `${value.toFixed(1)}x`;

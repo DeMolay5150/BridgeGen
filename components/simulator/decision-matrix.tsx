@@ -76,15 +76,39 @@ function supportSeverity(support: number): Severity {
 
 const round = (n: number) => Math.round(n);
 
-function MatrixTooltip({ active, payload }: { active?: boolean; payload?: { payload: Point }[] }) {
+/** "+8" / "−12" / "±0", in whole points. */
+function signedPoints(delta: number) {
+  const r = round(delta);
+  return r === 0 ? "±0" : r > 0 ? `+${r}` : `−${Math.abs(r)}`;
+}
+
+function DeltaValue({ label, value, today }: { label: string; value: number; today?: number }) {
+  const delta = today === undefined ? 0 : round(value) - round(today);
+  return (
+    <div className="flex items-baseline justify-between gap-6">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono tabular-nums">
+        <span className="text-foreground">{round(value)}</span>
+        {today !== undefined && (
+          <span className={cn("ml-2", delta > 0 ? "text-positive" : delta < 0 ? "text-critical" : "text-muted-foreground")}>
+            {signedPoints(delta)}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+function MatrixTooltip({ active, payload, today }: { active?: boolean; payload?: { payload: Point }[]; today: Point }) {
   const point = active ? payload?.[0]?.payload : undefined;
   if (!point) return null;
+  const compare = point.id === today.id ? undefined : today;
   return (
-    <div className="grid gap-1 rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-xl">
+    <div className="grid min-w-44 gap-1.5 rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-xl">
       <span className="font-medium text-foreground">{point.name}</span>
-      <span className="font-mono text-muted-foreground tabular-nums">
-        Economics {round(point.economics)} · Alignment {round(point.alignment)}
-      </span>
+      <DeltaValue label="Economics" value={point.economics} today={compare?.economics} />
+      <DeltaValue label="Alignment" value={point.alignment} today={compare?.alignment} />
+      {compare && <span className="text-[0.6875rem] text-muted-foreground">Change vs. Today</span>}
     </div>
   );
 }
@@ -181,7 +205,7 @@ export function DecisionMatrix() {
                 width={44}
                 label={{ value: "Alignment →", angle: -90, position: "insideLeft", offset: 12, fill: "var(--muted-foreground)" }}
               />
-              <ChartTooltip cursor={false} content={<MatrixTooltip />} />
+              <ChartTooltip cursor={false} content={<MatrixTooltip today={todayPoints[0]} />} />
               <Scatter
                 data={presetPoints}
                 isAnimationActive={false}

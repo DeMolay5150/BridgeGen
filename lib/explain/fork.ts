@@ -1,10 +1,9 @@
 import type { YearPoint } from "../projection/types";
-import { formatMoney } from "../simulator/format";
+import { formatMoney, formatSignedMoney as signed } from "../simulator/format";
 import type { Explanation, ExplanationStep } from "./types";
 
 /** Leads under $50K are a tie. */
 const TIE = 0.05;
-const signed = (n: number) => `${n >= 0 ? "+" : "−"}${formatMoney(Math.abs(n))}`;
 
 /**
  * Why one branch leads at a horizon. Shareholder value = equity − expected
