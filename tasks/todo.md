@@ -77,3 +77,24 @@ Audit (2026-10-14), baseline 152 tests / type-check / lint green:
 - [x] Task 5.6: Route hardening: JSON-only + same-origin checks on mutating routes, tested
 - [x] Task 5.7: Multi-seat firms migration (firms, firm_members, companies.firm_id, membership RLS) + RLS tests. Verified in PGlite (34 scenarios); NOT yet pushed to the live project (needs sign-off), so `pnpm test:rls` fails until `db push`
   - Next: firm invite flow (add colleagues by email via a server route), firm switcher for new companies (they default to the personal firm)
+
+## Phase 6: Engines, Canvases, Multiplayer & Decks (patterns 6–10)
+Audit (2026-10-14), baseline 174 tests green:
+- No visual graph of ownership or governance; Decision Room is forms + lists.
+- No financial statements: `lib/projection` is a single-line cash sweep (EBITDA × conversion). No IS/BS/CF, no balance check, no probabilistic view.
+- No finance primitives: NPV/IRR/XIRR/WACC/amortization absent; interest is flat `debt × rate`. Nothing copies to Excel.
+- No realtime, no permission layer beyond RLS, no audit trail.
+- Red Team exports nothing presentation-shaped.
+
+Substitutions (same pattern, fewer moving parts; each swappable later):
+- Liveblocks → Supabase Realtime presence/broadcast on private channels (already our auth + RLS; no new vendor or key).
+- Cerbos → in-process Cerbos-style policy (resource × action × derived role → effect) in `lib/authz`, no extra service.
+- ReactGrid → native TSV clipboard (ReactGrid 4 doesn't support React 19).
+- Marp CLI (needs headless Chromium) → client-side .pptx (pptxgenjs), .pdf (react-pdf) and Marp-flavoured .md.
+
+- [ ] Task 6.1: `lib/finance`: NPV, IRR, XIRR, WACC, amortization schedules (finance.ts conventions), tested against known values
+- [ ] Task 6.2: `lib/statements`: linked 3-statement engine (balances every year) + seeded Monte Carlo; Simulator panel with statements, distribution, explainer; Excel copy/paste (TSV)
+- [ ] Task 6.3: React Flow map in the Decision Room: ownership cascade + governance voting tree
+- [ ] Task 6.4: Red Team deck: .pptx / .pdf / Marp .md
+- [ ] Task 6.5: Policy engine + audit log (migration, server-written) wired into room routes
+- [ ] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels
