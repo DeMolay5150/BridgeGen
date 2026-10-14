@@ -92,7 +92,7 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 - ReactGrid → native TSV clipboard (ReactGrid 4 doesn't support React 19).
 - Marp CLI (needs headless Chromium) → client-side .pptx (pptxgenjs), .pdf (react-pdf) and Marp-flavoured .md.
 
-- [ ] Task 6.1: `lib/finance`: NPV, IRR, XIRR, WACC, amortization schedules (finance.ts conventions), tested against known values
+- [x] Task 6.1: `lib/finance`: NPV, IRR, XIRR, WACC, amortization schedules (finance.ts conventions), tested against known values
 - [ ] Task 6.2: `lib/statements`: linked 3-statement engine (balances every year) + seeded Monte Carlo; Simulator panel with statements, distribution, explainer; Excel copy/paste (TSV)
 - [ ] Task 6.3: React Flow map in the Decision Room: ownership cascade + governance voting tree
 - [ ] Task 6.4: Red Team deck: .pptx / .pdf / Marp .md
