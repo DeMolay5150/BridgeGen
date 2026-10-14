@@ -99,4 +99,15 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 - [x] Task 6.5: Policy engine + audit log (migration, server-written) wired into room routes
 - [x] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels
   - Verified with a fake channel (16 tests, echo-suppression mutation-checked) and PGlite RLS; not yet end-to-end with two live browsers (needs the firms + realtime migrations pushed and two advisor accounts)
-- Open from Phase 6: apply migrations `20261014090000_firms`, `20261015090000_audit_log`, `20261016090000_realtime_rooms` (run `pnpm test:migrations` first), then disable Realtime "Allow public access"; persist the three-statement assumptions (needs a column)
+- [x] Migrations firms / audit_log / realtime_rooms applied to `ahujzemhtytbiyuemuyy` (2026-10-14); live `pnpm test:rls` 12 passed, 4 API-route tests skipped (dev server not started)
+- Open: disable Realtime "Allow public access" and enable leaked-password protection (dashboard); push `20261017090000_hardening` (advisor follow-ups); persist the three-statement assumptions (needs a column)
+
+## Phase 7: Client delivery (presentation mode, IC deck, liquidity alerts, walkthrough)
+Note: BridgeGen is one repository; "across the 10 modules" = the ten capability areas inside it.
+- [ ] Task 7.1: Shared KPI delta type (`lib/domain/delta.ts`) used by the Simulator cards, PDF report and decks
+- [ ] Task 7.2: Liquidity & covenant alerts from the three-statement model (base and downturn case), today vs scenario, on Red Team and Fork
+- [ ] Task 7.3: Shared PDF chrome: header, numbered footer, optional watermark (Confidential / Draft / Client copy) for both PDF generators
+- [ ] Task 7.4: IC deck (.pptx / PDF / Marp) from Simulator + Decision Room: scenario vs today, statements, Monte Carlo, liquidity, governance, stress, room gaps
+- [ ] Task 7.5: Presentation mode (`/present`): full-screen, client-safe, four simplified levers, live KPIs
+- [ ] Task 7.6: `WALKTHROUGH-SCRIPT.md`, `/walkthrough` landing page, Remotion project in `video/` with a render script
+

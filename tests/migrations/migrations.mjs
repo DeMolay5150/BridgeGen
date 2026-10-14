@@ -164,6 +164,19 @@ if (files.some((f) => f.endsWith("_realtime_rooms.sql"))) {
   check("realtime: only broadcast and presence", failed(await send("alice", topic, "postgres_changes")));
 }
 
+// Hardening: trigger functions aren't callable as RPCs, and the triggers still fire.
+if (files.some((f) => f.endsWith("_hardening.sql"))) {
+  const grants = await as(
+    "service",
+    `select count(*)::int as n from unnest(array['anon', 'authenticated']) r,
+       unnest(array['public.companies_default_firm()', 'public.firms_delete_empty()', 'public.users_create_personal_firm()',
+                    'public.firm_members_keep_owner()', 'public.audit_events_append_only()', 'public.set_updated_at()']) f
+     where has_function_privilege(r, f, 'execute')`,
+  );
+  check("hardening: no API role holds EXECUTE on a trigger function", grants.rows[0]?.n === 0);
+  check("hardening: the triggers still run (insert lands in a firm)", ok(await as("bob", "insert into companies (name) values ('After hardening') returning firm_id")));
+}
+
 // Account deletion
 await as("service", "update firm_members set role = 'owner' where firm_id = $1 and user_id = $2", [firmId, ids.carol]);
 await db.query("delete from auth.users where id = $1", [ids.alice]);
