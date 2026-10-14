@@ -74,7 +74,7 @@ export function RedTeam() {
               Break the plan before reality does
             </h1>
           </div>
-          <DeckDialog />
+          <DeckDialog kind="redTeam" />
         </div>
         <p className="text-sm text-muted-foreground">
           Attacking your scenario: <span className="font-mono text-xs text-foreground">{describeScenario(scenario, governanceScore)}</span>{" "}

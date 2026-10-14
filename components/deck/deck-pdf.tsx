@@ -86,7 +86,7 @@ function SlidePage({ slide, deck, watermark }: { slide: Slide; deck: Deck; water
               {row.cells.map((cell, i) => (
                 <Text
                   key={i}
-                  style={[s.cell, { flex: slide.widths[i] }, i === 2 && row.tone ? { color: TONE[row.tone], fontFamily: "Helvetica-Bold" } : {}]}
+                  style={[s.cell, { flex: slide.widths[i] }, i === slide.toneColumn && row.tone ? { color: TONE[row.tone], fontFamily: "Helvetica-Bold" } : {}]}
                 >
                   {t(cell)}
                 </Text>

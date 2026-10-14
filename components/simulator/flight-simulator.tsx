@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { neutralScenario } from "@/lib/simulator/defaults";
 import { simulate } from "@/lib/simulator/engine";
 import { FinancialModel } from "@/components/statements/financial-model";
+import { DeckDialog } from "@/components/deck/deck-dialog";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { BaselinePanel } from "./baseline-panel";
 import { DecisionMatrix } from "./decision-matrix";
@@ -37,10 +38,13 @@ export function FlightSimulator() {
             See the consequences before you decide
           </h1>
         </div>
-        <Button variant="outline" onClick={reset}>
-          <RotateCcw data-icon="inline-start" />
-          Reset
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <DeckDialog kind="ic" />
+          <Button variant="outline" onClick={reset}>
+            <RotateCcw data-icon="inline-start" />
+            Reset
+          </Button>
+        </div>
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">

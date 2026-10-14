@@ -26,6 +26,8 @@ export type Slide =
       columns: string[];
       /** Relative column widths, shared by every renderer. */
       widths: number[];
+      /** The column coloured by each row's tone, if any. */
+      toneColumn?: number;
       rows: { cells: string[]; tone?: Severity }[];
       note?: string;
     };
@@ -95,6 +97,7 @@ export function buildRedTeamDeck(input: DeckInput): Deck {
         title: "Stress scenarios",
         columns: ["Scenario", "What happens", "Verdict", "Equity", "Value destroyed", "Saved by governance"],
         widths: [1.4, 2.6, 0.8, 1.6, 1, 1.1],
+        toneColumn: 2,
         rows: shocks.map((s) => ({
           cells: [
             s.name,
@@ -112,6 +115,7 @@ export function buildRedTeamDeck(input: DeckInput): Deck {
         title: "Breaking points",
         columns: ["Limit", "Driver", "This decision", "Today"],
         widths: [2.4, 1.2, 1, 1],
+        toneColumn: 2,
         rows: yours.map((p) => ({
           cells: [p.limit, `${p.driver} falls`, threshold(p), threshold(today.find((t) => t.id === p.id))],
           tone: p.severity,
@@ -133,7 +137,7 @@ export function buildRedTeamDeck(input: DeckInput): Deck {
 }
 
 /** Marp markdown (https://marp.app): render with `npx @marp-team/marp-cli deck.md --pdf` or `--pptx`. */
-export function toMarp(deck: Deck): string {
+export function toMarp(deck: Deck, footer?: string): string {
   const escapeCell = (text: string) => text.replace(/\|/g, "\\|");
   const sections = deck.slides.map((slide) => {
     switch (slide.kind) {
@@ -154,6 +158,16 @@ export function toMarp(deck: Deck): string {
         ].join("\n");
     }
   });
-  const frontMatter = ["---", "marp: true", "theme: default", "class: invert", "paginate: true", `title: "${deck.title.replace(/"/g, "'")}"`, "---"].join("\n");
+  const quoted = (text: string) => `"${text.replace(/"/g, "'")}"`;
+  const frontMatter = [
+    "---",
+    "marp: true",
+    "theme: default",
+    "class: invert",
+    "paginate: true",
+    `title: ${quoted(deck.title)}`,
+    ...(footer ? [`footer: ${quoted(footer)}`] : []),
+    "---",
+  ].join("\n");
   return `${frontMatter}\n\n${sections.join("\n\n---\n\n")}\n`;
 }

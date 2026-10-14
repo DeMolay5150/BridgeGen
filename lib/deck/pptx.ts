@@ -2,6 +2,14 @@ import type PptxGenJS from "pptxgenjs";
 import type { Severity } from "../simulator/types";
 import type { Deck, Slide } from "./redteam";
 
+/** Optional page furniture, matching the PDF chrome. */
+export interface PptxChrome {
+  /** e.g. "BridgeGen · Confidential · Prepared for Hartwell". */
+  footer: string;
+  /** e.g. "CONFIDENTIAL"; omitted for none. */
+  watermark?: string;
+}
+
 /* Quiet Luxury palette, as PowerPoint hex. */
 const C = {
   background: "020617",
@@ -21,28 +29,34 @@ const FONT = "Arial";
 const MARGIN = 0.6;
 const WIDTH = 13.33 - 2 * MARGIN;
 
-function chrome(slide: PptxGenJS.Slide, index: number, total: number, title?: string) {
+function chrome(slide: PptxGenJS.Slide, index: number, total: number, furniture: PptxChrome, title?: string) {
   slide.background = { color: C.background };
+  if (furniture.watermark) {
+    slide.addText(furniture.watermark, {
+      x: 1.2, y: 2.6, w: 10.9, h: 2.2, fontFace: FONT, fontSize: 88, bold: true, color: C.text,
+      transparency: 94, rotate: -30, align: "center", valign: "middle",
+    });
+  }
   slide.addText("BRIDGEGEN", { x: MARGIN, y: 0.3, w: 4, h: 0.3, fontFace: FONT, fontSize: 9, bold: true, color: C.metric, charSpacing: 4 });
   slide.addText(`${index} / ${total}`, { x: 13.33 - MARGIN - 2, y: 6.95, w: 2, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted, align: "right" });
-  slide.addText("Confidential", { x: MARGIN, y: 6.95, w: 4, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted });
+  slide.addText(furniture.footer, { x: MARGIN, y: 6.95, w: 8, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted });
   if (title) {
     slide.addText(title, { x: MARGIN, y: 0.75, w: WIDTH, h: 0.7, fontFace: FONT, fontSize: 26, bold: true, color: C.text });
   }
 }
 
-function render(pptx: PptxGenJS, s: Slide, index: number, total: number) {
+function render(pptx: PptxGenJS, s: Slide, index: number, total: number, furniture: PptxChrome) {
   const slide = pptx.addSlide();
   switch (s.kind) {
     case "title": {
-      chrome(slide, index, total);
+      chrome(slide, index, total, furniture);
       slide.addText(s.title.toUpperCase(), { x: MARGIN, y: 2.1, w: WIDTH, h: 0.4, fontFace: FONT, fontSize: 12, bold: true, color: C.critical, charSpacing: 3 });
       slide.addText(s.subtitle, { x: MARGIN, y: 2.6, w: WIDTH, h: 1, fontFace: FONT, fontSize: 40, bold: true, color: C.text });
       slide.addText(s.meta.join("\n"), { x: MARGIN, y: 3.8, w: WIDTH, h: 1.2, fontFace: FONT, fontSize: 14, color: C.muted, valign: "top" });
       return;
     }
     case "headline": {
-      chrome(slide, index, total, s.title);
+      chrome(slide, index, total, furniture, s.title);
       slide.addShape(pptx.ShapeType.rect, { x: MARGIN, y: 1.75, w: 0.06, h: 1.5, fill: { color: TONE[s.tone] }, line: { color: TONE[s.tone] } });
       slide.addText(s.headline, { x: MARGIN + 0.25, y: 1.75, w: WIDTH - 0.25, h: 1.5, fontFace: FONT, fontSize: 22, color: C.text, valign: "middle" });
       const w = WIDTH / s.kpis.length;
@@ -55,7 +69,7 @@ function render(pptx: PptxGenJS, s: Slide, index: number, total: number) {
       return;
     }
     case "bullets": {
-      chrome(slide, index, total, s.title);
+      chrome(slide, index, total, furniture, s.title);
       slide.addText(
         s.bullets.map((b) => ({ text: b, options: { bullet: s.numbered ? { type: "number" as const } : { code: "25AA" }, paraSpaceAfter: 14 } })),
         { x: MARGIN, y: 1.7, w: WIDTH, h: 4.9, fontFace: FONT, fontSize: 18, color: C.text, valign: "top" },
@@ -63,10 +77,10 @@ function render(pptx: PptxGenJS, s: Slide, index: number, total: number) {
       return;
     }
     case "table": {
-      chrome(slide, index, total, s.title);
+      chrome(slide, index, total, furniture, s.title);
       const header = s.columns.map((c) => ({ text: c, options: { bold: true, color: C.muted, fill: { color: C.panel } } }));
       const body = s.rows.map((r) =>
-        r.cells.map((cell, i) => ({ text: cell, options: { color: i === 2 && r.tone ? TONE[r.tone] : C.text } })),
+        r.cells.map((cell, i) => ({ text: cell, options: { color: i === s.toneColumn && r.tone ? TONE[r.tone] : C.text } })),
       );
       const widthSum = s.widths.reduce((a, b) => a + b, 0);
       slide.addTable([header, ...body], {
@@ -88,13 +102,17 @@ function render(pptx: PptxGenJS, s: Slide, index: number, total: number) {
 }
 
 /** Renders the deck as a .pptx. `nodebuffer` is for tests; the app uses `blob`. */
-export async function deckToPptx(deck: Deck, outputType: "blob" | "nodebuffer" = "blob"): Promise<Blob | Uint8Array> {
+export async function deckToPptx(
+  deck: Deck,
+  outputType: "blob" | "nodebuffer" = "blob",
+  furniture: PptxChrome = { footer: "Confidential" },
+): Promise<Blob | Uint8Array> {
   const { default: Pptx } = await import("pptxgenjs");
   const pptx = new Pptx();
   pptx.layout = "LAYOUT_WIDE";
   pptx.title = deck.title;
   pptx.company = "BridgeGen";
   pptx.author = "BridgeGen";
-  deck.slides.forEach((s, i) => render(pptx, s, i + 1, deck.slides.length));
+  deck.slides.forEach((s, i) => render(pptx, s, i + 1, deck.slides.length, furniture));
   return (await pptx.write({ outputType })) as Blob | Uint8Array;
 }

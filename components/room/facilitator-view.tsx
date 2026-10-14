@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { CheckCircle2, Circle, RefreshCw, ShieldCheck } from "lucide-react";
+import { DeckDialog } from "@/components/deck/deck-dialog";
 import { ExportDialog } from "@/components/report/export-dialog";
 import { ActivityCard } from "./activity-card";
 import { Button } from "@/components/ui/button";
@@ -102,11 +103,12 @@ export function FacilitatorView() {
           <CardHeader>
             <CardTitle>Executive summary</CardTitle>
             <CardDescription>
-              A branded PDF of the scenario, governance, stress test and these gaps, for the client file.
+              A branded PDF for the client file, or an IC deck with these gaps. Never anyone&apos;s answers.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-2">
             <ExportDialog gaps={companyId ? remote.data : localGaps} />
+            <DeckDialog kind="ic" gaps={companyId ? remote.data : localGaps} />
           </CardContent>
         </Card>
 

@@ -19,7 +19,7 @@ export const WATERMARKS: { id: Watermark; label: string }[] = [
   { id: "client", label: "Client copy" },
 ];
 
-const WATERMARK_TEXT: Record<Exclude<Watermark, "none">, string> = {
+export const WATERMARK_TEXT: Record<Exclude<Watermark, "none">, string> = {
   confidential: "CONFIDENTIAL",
   draft: "DRAFT",
   client: "CLIENT COPY",
