@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STAKEHOLDER_IDS, STAKEHOLDER_LABELS } from "@/lib/simulator/alignment";
 import { FacilitatorView } from "./facilitator-view";
+import { RoomMap } from "./room-map";
 import { StakeholderView } from "./stakeholder-view";
 
 export function DecisionRoom() {
@@ -21,7 +22,7 @@ export function DecisionRoom() {
 
       {/* Inactive panels unmount, so one stakeholder's answers are never in another's view. */}
       <Tabs defaultValue="founder" className="gap-6">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-hidden">
           <TabsList>
             {STAKEHOLDER_IDS.map((id) => (
               <TabsTrigger key={id} value={id} className="px-3">
@@ -30,6 +31,9 @@ export function DecisionRoom() {
             ))}
             <TabsTrigger value="facilitator" className="px-3">
               Facilitator
+            </TabsTrigger>
+            <TabsTrigger value="map" className="px-3">
+              Map
             </TabsTrigger>
           </TabsList>
         </div>
@@ -40,6 +44,9 @@ export function DecisionRoom() {
         ))}
         <TabsContent value="facilitator">
           <FacilitatorView />
+        </TabsContent>
+        <TabsContent value="map">
+          <RoomMap />
         </TabsContent>
       </Tabs>
     </div>
