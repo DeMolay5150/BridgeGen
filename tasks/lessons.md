@@ -11,3 +11,6 @@ This file tracks technical mistakes, failed builds, and architectural correction
 - Verify migrations without Docker by running them in PGlite (Postgres WASM) with stubbed `auth.users` / `auth.uid()` and the `anon`/`authenticated` roles; it caught a first-insert RLS failure the code review missed.
 - react-pdf: a `render` (page-number) Text that inherits a page-level `lineHeight` renders nothing, and the `fixed` footer silently disappears. Never set `lineHeight` on `Page` or wrapper Views; set it on text styles. The PDF test asserts every page's footer.
 - Dev-server browser checks: use `localhost`, not `127.0.0.1` (Next blocks HMR for unlisted origins and the page reload-loops). First compile can take 75s+ on this drive.
+- Base UI Tabs/Dialog only unmount a closed panel when its exit transition completes (animation frames), which never happens in a background tab. Where unmounting is a guarantee (Decision Room confidentiality), render panel content conditionally on the controlled value.
+- PDF/static lists: never key rows by display text; it can repeat ("Equity is wiped out" appears twice in breaking points). Use positional keys for static documents.
+- Cache Components prerenders client components: no `Date.now()`/`Math.random()` in render or `useState` initialisers.

@@ -97,4 +97,6 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 - [x] Task 6.3: React Flow map in the Decision Room: ownership cascade + governance voting tree
 - [x] Task 6.4: Red Team deck: .pptx / .pdf / Marp .md
 - [x] Task 6.5: Policy engine + audit log (migration, server-written) wired into room routes
-- [ ] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels
+- [x] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels
+  - Verified with a fake channel (16 tests, echo-suppression mutation-checked) and PGlite RLS; not yet end-to-end with two live browsers (needs the firms + realtime migrations pushed and two advisor accounts)
+- Open from Phase 6: apply migrations `20261014090000_firms`, `20261015090000_audit_log`, `20261016090000_realtime_rooms` (run `pnpm test:migrations` first), then disable Realtime "Allow public access"; persist the three-statement assumptions (needs a column)

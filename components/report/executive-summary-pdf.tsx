@@ -75,7 +75,7 @@ function Bullets({ items, numbered = false }: { items: string[]; numbered?: bool
   return (
     <View>
       {items.map((item, i) => (
-        <View key={item} style={s.bullet} wrap={false}>
+        <View key={i} style={s.bullet} wrap={false}>
           <Text style={s.bulletMark}>{numbered ? `${i + 1}.` : "•"}</Text>
           <Text style={s.bulletText}>{t(item)}</Text>
         </View>

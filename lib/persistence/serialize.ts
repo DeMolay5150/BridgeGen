@@ -29,16 +29,18 @@ export interface CompanyRow {
 }
 
 const finite = z.number().finite();
+
+/* Section schemas are exported for any untrusted input (saved rows, realtime messages). */
 const practice = z.enum(["yes", "partial", "no"]);
 const branch = z.object({ source: z.string().max(40), fixGovernance: z.boolean() });
 
-const baselineSchema = z
+export const baselineSchema = z
   .object({ revenue: finite, ebitda: finite, multiple: finite, existingDebt: finite, interestRate: finite, founderOwnership: finite })
   .partial();
-const scenarioSchema = z
+export const scenarioSchema = z
   .object({ leverage: finite, equityTransfer: finite, multipleShock: finite, outsideCeo: z.boolean(), ceoCost: finite, ceoUplift: finite })
   .partial();
-const governanceSchema = z
+export const governanceSchema = z
   .object({
     delegationOfAuthority: practice,
     successionPlan: practice,
@@ -61,7 +63,7 @@ const forkSchema = z
   .partial();
 // partialRecord: in Zod 4, z.record with enum keys requires every key to be present.
 const stakeholderPrioritiesSchema = z.partialRecord(z.enum(PRIORITY_KEYS as [string, ...string[]]), finite);
-const prioritiesSchema = z.partialRecord(z.enum(STAKEHOLDER_IDS as [string, ...string[]]), stakeholderPrioritiesSchema);
+export const prioritiesSchema = z.partialRecord(z.enum(STAKEHOLDER_IDS as [string, ...string[]]), stakeholderPrioritiesSchema);
 
 /** Parses one saved section; invalid data falls back to an empty patch (i.e. the defaults). */
 function section<T extends object>(schema: z.ZodType<T>, value: unknown): Partial<T> {

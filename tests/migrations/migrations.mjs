@@ -22,6 +22,14 @@ await db.exec(`
   grant usage on schema public, auth to anon, authenticated, service_role;
   grant execute on function auth.uid() to anon, authenticated;
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  create schema realtime;
+  create table realtime.messages (id bigserial primary key, topic text not null, extension text not null, payload jsonb);
+  alter table realtime.messages enable row level security;
+  create function realtime.topic() returns text language sql stable as $$ select nullif(current_setting('realtime.topic', true), '') $$;
+  grant usage on schema realtime to anon, authenticated;
+  grant select, insert on realtime.messages to authenticated;
+  grant usage on sequence realtime.messages_id_seq to authenticated;
+  grant execute on function realtime.topic() to anon, authenticated;
   alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 `);
 
@@ -50,11 +58,12 @@ const check = (label, cond) => {
 };
 
 /** Runs SQL as a signed-in user, anon or the service role; errors roll back and are returned. */
-async function as(who, sql, params = []) {
+async function as(who, sql, params = [], topic = "") {
   const role = who === "anon" ? "anon" : who === "service" ? "service_role" : "authenticated";
   try {
     return await db.transaction(async (tx) => {
       await tx.query("select set_config('request.jwt.claim.sub', $1, true)", [ids[who] ?? ""]);
+      await tx.query("select set_config('realtime.topic', $1, true)", [topic]);
       await tx.exec(`set local role ${role}`);
       const res = await tx.query(sql, params);
       return { rows: res.rows, error: null };
@@ -139,6 +148,20 @@ if (auditSql) {
   check("audit: users can't delete events", (await as("alice", "delete from audit_events returning id")).rows.length === 0 && (await as("service", "select id from audit_events")).rows.length === 1);
   check("audit: malformed actions are refused", failed(await as("service", "insert into audit_events (firm_id, action) values ($1, 'DROP TABLE')", [firmId])));
   check("audit: oversized metadata is refused", failed(await as("service", "insert into audit_events (firm_id, action, metadata) values ($1, 'x.y', jsonb_build_object('blob', repeat('a', 4000)))", [firmId])));
+}
+
+// Realtime private channels (fourth migration)
+if (files.some((f) => f.endsWith("_realtime_rooms.sql"))) {
+  const topic = `company:${companyId}`;
+  const send = (who, t = topic, extension = "broadcast") =>
+    as(who, "insert into realtime.messages (topic, extension, payload) values ($1, $2, '{}') returning id", [t, extension], t);
+  const listen = (who, t = topic) => as(who, "select id from realtime.messages where topic = $1", [t], t);
+  check("realtime: a firm member can send to the company's channel", ok(await send("carol")));
+  check("realtime: the owner can too, and both receive", ok(await send("alice")) && (await listen("carol")).rows.length === 2);
+  check("realtime: an outsider can neither send nor receive", failed(await send("bob")) && (await listen("bob")).rows.length === 0);
+  check("realtime: anon can't send", failed(await send("anon")));
+  check("realtime: malformed topics are refused", failed(await send("alice", "company:not-a-uuid")) && failed(await send("alice", "firm:x")));
+  check("realtime: only broadcast and presence", failed(await send("alice", topic, "postgres_changes")));
 }
 
 // Account deletion

@@ -46,8 +46,8 @@ function SlidePage({ slide }: { slide: Slide }) {
         <View style={{ marginTop: 120 }}>
           <Text style={{ color: C.critical, fontSize: 11, letterSpacing: 2, fontFamily: "Helvetica-Bold" }}>{slide.title.toUpperCase()}</Text>
           <Text style={{ fontSize: 34, fontFamily: "Helvetica-Bold", marginTop: 10, lineHeight: 1.2 }}>{t(slide.subtitle)}</Text>
-          {slide.meta.map((line) => (
-            <Text key={line} style={{ color: C.muted, fontSize: 12, marginTop: 8 }}>
+          {slide.meta.map((line, i) => (
+            <Text key={i} style={{ color: C.muted, fontSize: 12, marginTop: 8 }}>
               {t(line)}
             </Text>
           ))}
@@ -72,7 +72,7 @@ function SlidePage({ slide }: { slide: Slide }) {
 
       {slide.kind === "bullets" &&
         slide.bullets.map((b, i) => (
-          <View key={b} style={s.bullet} wrap={false}>
+          <View key={i} style={s.bullet} wrap={false}>
             <Text style={s.bulletMark}>{slide.numbered ? `${i + 1}.` : "•"}</Text>
             <Text style={s.bulletText}>{t(b)}</Text>
           </View>
@@ -87,11 +87,12 @@ function SlidePage({ slide }: { slide: Slide }) {
               </Text>
             ))}
           </View>
-          {slide.rows.map((row) => (
-            <View key={row.cells[0]} style={{ flexDirection: "row", borderBottomWidth: 1, borderColor: C.rule }} wrap={false}>
+          {/* Static document: positional keys. Cell text repeats (two "Equity is wiped out" limits). */}
+          {slide.rows.map((row, r) => (
+            <View key={r} style={{ flexDirection: "row", borderBottomWidth: 1, borderColor: C.rule }} wrap={false}>
               {row.cells.map((cell, i) => (
                 <Text
-                  key={`${i}-${cell}`}
+                  key={i}
                   style={[s.cell, { flex: slide.widths[i] }, i === 2 && row.tone ? { color: TONE[row.tone], fontFamily: "Helvetica-Bold" } : {}]}
                 >
                   {t(cell)}
