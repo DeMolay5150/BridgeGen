@@ -32,6 +32,9 @@ export type Slide =
 
 export interface Deck {
   title: string;
+  /** e.g. "Red Team stress test", for running headers. */
+  kind: string;
+  company: string;
   slides: Slide[];
 }
 
@@ -66,6 +69,8 @@ export function buildRedTeamDeck(input: DeckInput): Deck {
 
   return {
     title: `${input.companyName}: Red Team stress test`,
+    kind: "Red Team stress test",
+    company: input.companyName,
     slides: [
       {
         kind: "title",

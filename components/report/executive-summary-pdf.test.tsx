@@ -5,6 +5,7 @@ import { defaultSnapshot } from "@/lib/persistence/serialize";
 import { REPORT_SECTIONS, buildReport, type ReportSectionId } from "@/lib/report/build";
 import { detectGaps } from "@/lib/room/gaps";
 import { DEMO_RESPONSES } from "@/lib/room/topics";
+import { footerText, type Watermark } from "@/components/pdf/chrome";
 import { ExecutiveSummaryDocument } from "./executive-summary-pdf";
 
 /** Each page's decompressed content stream (react-pdf writes one per page). */
@@ -21,7 +22,7 @@ function pageStreams(pdf: Buffer): string[] {
 /** Standard-font text is written as hex-encoded WinAnsi strings. */
 const hex = (text: string) => Buffer.from(text, "latin1").toString("hex");
 
-async function render(sections: ReportSectionId[]) {
+async function render(sections: ReportSectionId[], watermark: Watermark = "none") {
   const report = buildReport({
     companyName: "Hartwell Family Holdings",
     preparedBy: "Jordan Lee",
@@ -30,7 +31,7 @@ async function render(sections: ReportSectionId[]) {
     sections,
     generatedAt: new Date("2026-10-14T12:00:00Z"),
   });
-  return renderToBuffer(<ExecutiveSummaryDocument report={report} />);
+  return renderToBuffer(<ExecutiveSummaryDocument report={report} watermark={watermark} />);
 }
 
 describe("ExecutiveSummaryDocument", () => {
@@ -41,6 +42,14 @@ describe("ExecutiveSummaryDocument", () => {
     expect(pages).toHaveLength(5);
     // Regression: a page-level lineHeight silently dropped the fixed footer.
     pages.forEach((stream, i) => expect(stream).toContain(hex(`${i + 1} / 5`)));
+  }, 30_000);
+
+  it("watermarks every page when asked, and names the classification in the footer", async () => {
+    const pages = pageStreams(await render(["governance", "room"], "draft"));
+    pages.forEach((stream) => expect(stream).toContain(hex("DRAFT")));
+    expect(footerText("Hartwell", "draft")).toBe("BridgeGen · Draft · Prepared for Hartwell");
+    expect(footerText("Hartwell", "none")).toBe("BridgeGen · Prepared for Hartwell");
+    pageStreams(await render(["governance"])).forEach((stream) => expect(stream).not.toContain(hex("DRAFT")));
   }, 30_000);
 
   it("leaves out unchosen sections", async () => {

@@ -1,4 +1,5 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Footer, RunningHeader, SCREEN_PALETTE, WatermarkMark, footerText, type Watermark } from "@/components/pdf/chrome";
 import type { Deck, Slide } from "@/lib/deck/redteam";
 import { pdfText as t } from "@/lib/report/pdf-text";
 import type { Severity } from "@/lib/simulator/types";
@@ -19,29 +20,21 @@ const TONE: Record<Severity, string> = { positive: C.positive, caution: C.cautio
 
 // No lineHeight on the Page: it suppresses the page-number `render` text (see tasks/lessons.md).
 const s = StyleSheet.create({
-  page: { backgroundColor: C.background, color: C.text, fontFamily: "Helvetica", paddingHorizontal: 44, paddingTop: 30, paddingBottom: 48 },
-  wordmark: { color: C.metric, fontSize: 8, letterSpacing: 2.5, fontFamily: "Helvetica-Bold" },
+  page: { backgroundColor: C.background, color: C.text, fontFamily: "Helvetica", paddingHorizontal: 44, paddingTop: 40, paddingBottom: 48 },
   title: { fontSize: 24, fontFamily: "Helvetica-Bold", marginTop: 14, marginBottom: 18 },
-  footer: { position: "absolute", bottom: 20, left: 44, right: 44, flexDirection: "row", justifyContent: "space-between", fontSize: 8, color: C.muted },
   bullet: { flexDirection: "row", marginBottom: 12 },
   bulletMark: { width: 22, color: C.metric, fontSize: 14 },
   bulletText: { flex: 1, fontSize: 14, lineHeight: 1.4 },
   cell: { flex: 1, fontSize: 9.5, paddingVertical: 6, paddingHorizontal: 5, lineHeight: 1.3 },
 });
 
-function Footer() {
-  return (
-    <View style={s.footer} fixed>
-      <Text>Confidential</Text>
-      <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-    </View>
-  );
-}
+const INSET = 44;
 
-function SlidePage({ slide }: { slide: Slide }) {
+function SlidePage({ slide, deck, watermark }: { slide: Slide; deck: Deck; watermark: Watermark }) {
   return (
     <Page size="LETTER" orientation="landscape" style={s.page}>
-      <Text style={s.wordmark}>BRIDGEGEN</Text>
+      <WatermarkMark kind={watermark} palette={SCREEN_PALETTE} />
+      <RunningHeader title={deck.kind} company={deck.company} palette={SCREEN_PALETTE} inset={INSET} />
       {slide.kind === "title" ? (
         <View style={{ marginTop: 120 }}>
           <Text style={{ color: C.critical, fontSize: 11, letterSpacing: 2, fontFamily: "Helvetica-Bold" }}>{slide.title.toUpperCase()}</Text>
@@ -103,17 +96,17 @@ function SlidePage({ slide }: { slide: Slide }) {
           {slide.note && <Text style={{ color: C.muted, fontSize: 10, marginTop: 12 }}>{t(slide.note)}</Text>}
         </View>
       )}
-      <Footer />
+      <Footer left={footerText(deck.company, watermark)} palette={SCREEN_PALETTE} inset={INSET} />
     </Page>
   );
 }
 
 /** The Red Team deck as a landscape, slide-per-page PDF. */
-export function DeckDocument({ deck }: { deck: Deck }) {
+export function DeckDocument({ deck, watermark = "none" }: { deck: Deck; watermark?: Watermark }) {
   return (
     <Document title={deck.title} author="BridgeGen" creator="BridgeGen" producer="BridgeGen">
       {deck.slides.map((slide) => (
-        <SlidePage key={slide.title} slide={slide} />
+        <SlidePage key={slide.title} slide={slide} deck={deck} watermark={watermark} />
       ))}
     </Document>
   );

@@ -2,6 +2,8 @@
 
 import { useId, useState } from "react";
 import { FileDown, Loader2 } from "lucide-react";
+import { WATERMARKS, type Watermark } from "@/components/pdf/chrome";
+import { Segmented } from "@/components/segmented";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -62,6 +64,8 @@ export function ExportDialog({ gaps }: { gaps: RoomGaps | null }) {
   const [preparedBy, setPreparedBy] = useState("");
   const [sections, setSections] = useState<ReportSectionId[]>(REPORT_SECTIONS.map((s) => s.id));
   const [status, setStatus] = useState<"idle" | "working" | "error">("idle");
+  const [watermark, setWatermark] = useState<Watermark>("confidential");
+  const watermarkId = useId();
 
   const chosen = sections.filter((id) => id !== "room" || gaps !== null);
   const toggle = (id: ReportSectionId, on: boolean) =>
@@ -83,7 +87,7 @@ export function ExportDialog({ gaps }: { gaps: RoomGaps | null }) {
         import("@react-pdf/renderer"),
         import("./executive-summary-pdf"),
       ]);
-      const blob = await pdf(<ExecutiveSummaryDocument report={report} />).toBlob();
+      const blob = await pdf(<ExecutiveSummaryDocument report={report} watermark={watermark} />).toBlob();
       downloadBlob(blob, exportFileName(companyName, "executive-summary", "pdf", generatedAt));
       reportExport(useSimulatorStore.getState().companyId, "report.exported", "pdf");
       setStatus("idle");
@@ -124,6 +128,12 @@ export function ExportDialog({ gaps }: { gaps: RoomGaps | null }) {
               placeholder="e.g. Jordan Lee, Meridian Family Office"
               onChange={(e) => setPreparedBy(e.target.value)}
             />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span id={watermarkId} className="text-sm">
+              Watermark
+            </span>
+            <Segmented labelId={watermarkId} value={watermark} options={WATERMARKS.map((w) => ({ value: w.id, label: w.label }))} onChange={setWatermark} />
           </div>
           <fieldset className="grid gap-4">
             <legend className="mb-3 text-xs text-muted-foreground">Sections</legend>

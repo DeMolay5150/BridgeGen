@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Footer, PRINT_PALETTE, RunningHeader, WatermarkMark, footerText, type Watermark } from "@/components/pdf/chrome";
 import type { ExecutiveBrief } from "@/lib/narrative/types";
 import type { ReportData } from "@/lib/report/build";
 import { pdfText as t } from "@/lib/report/pdf-text";
@@ -58,18 +59,8 @@ const s = StyleSheet.create({
   wide: { flex: 2.4 },
   pill: { fontSize: 8, fontFamily: "Helvetica-Bold" },
   bar: { height: 4, backgroundColor: C.rule, borderRadius: 2, marginTop: 3 },
-  footer: { position: "absolute", bottom: 28, left: 48, right: 48, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: C.muted, borderTopWidth: 1, borderColor: C.rule, paddingTop: 8 },
   note: { fontSize: 7.5, color: C.muted, marginTop: 18, lineHeight: 1.5 },
 });
-
-function Footer({ company }: { company: string }) {
-  return (
-    <View style={s.footer} fixed>
-      <Text>{t(`BridgeGen · Confidential · Prepared for ${company}`)}</Text>
-      <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
-    </View>
-  );
-}
 
 function Bullets({ items, numbered = false }: { items: string[]; numbered?: boolean }) {
   return (
@@ -100,20 +91,37 @@ function Brief({ brief }: { brief: ExecutiveBrief }) {
   );
 }
 
-function SectionPage({ eyebrow, title, company, children }: { eyebrow: string; title: string; company: string; children: ReactNode }) {
+const INSET = 48;
+
+function SectionPage({
+  eyebrow,
+  title,
+  company,
+  watermark,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  company: string;
+  watermark: Watermark;
+  children: ReactNode;
+}) {
   return (
     <Page size="LETTER" style={s.page}>
+      <WatermarkMark kind={watermark} palette={PRINT_PALETTE} />
+      <RunningHeader title="Executive Summary" company={company} palette={PRINT_PALETTE} inset={INSET} />
       <Text style={s.eyebrow}>{eyebrow}</Text>
       <Text style={s.h1}>{title}</Text>
       {children}
-      <Footer company={company} />
+      <Footer left={footerText(company, watermark)} palette={PRINT_PALETTE} inset={INSET} />
     </Page>
   );
 }
 
-function Cover({ r }: { r: ReportData }) {
+function Cover({ r, watermark }: { r: ReportData; watermark: Watermark }) {
   return (
     <Page size="LETTER" style={s.page}>
+      <WatermarkMark kind={watermark} palette={PRINT_PALETTE} />
       <View style={s.band}>
         <Text style={s.wordmark}>BRIDGEGEN</Text>
         <Text style={s.tagline}>Private Company Decision Simulator</Text>
@@ -157,15 +165,15 @@ function Cover({ r }: { r: ReportData }) {
           "All figures are deterministic outputs of the BridgeGen engines for the scenario modelled; no figure is AI-generated. They illustrate consequences under stated assumptions and are not a valuation opinion, fairness opinion or investment advice.",
         )}
       </Text>
-      <Footer company={r.companyName} />
+      <Footer left={footerText(r.companyName, watermark)} palette={PRINT_PALETTE} inset={INSET} />
     </Page>
   );
 }
 
-function CapitalPage({ r }: { r: ReportData }) {
+function CapitalPage({ r, watermark }: { r: ReportData; watermark: Watermark }) {
   const c = r.capital;
   return (
-    <SectionPage eyebrow="Capital allocation" title="The decision against today" company={r.companyName}>
+    <SectionPage eyebrow="Capital allocation" title="The decision against today" company={r.companyName} watermark={watermark}>
       <Text style={[s.muted, { marginBottom: 12 }]}>{t(`Scenario: ${c.scenario}`)}</Text>
       <View style={s.table}>
         <View style={s.row}>
@@ -213,10 +221,10 @@ function CapitalPage({ r }: { r: ReportData }) {
   );
 }
 
-function GovernancePage({ r }: { r: ReportData }) {
+function GovernancePage({ r, watermark }: { r: ReportData; watermark: Watermark }) {
   const g = r.governance;
   return (
-    <SectionPage eyebrow="Governance debt" title={`Governance Debt Score ${g.score}/100`} company={r.companyName}>
+    <SectionPage eyebrow="Governance debt" title={`Governance Debt Score ${g.score}/100`} company={r.companyName} watermark={watermark}>
       <Brief brief={g.brief} />
       <Text style={s.h2}>By category</Text>
       <View style={s.table}>
@@ -237,9 +245,9 @@ function GovernancePage({ r }: { r: ReportData }) {
   );
 }
 
-function RedTeamPage({ r }: { r: ReportData }) {
+function RedTeamPage({ r, watermark }: { r: ReportData; watermark: Watermark }) {
   return (
-    <SectionPage eyebrow="Red Team stress test" title="Break the plan before reality does" company={r.companyName}>
+    <SectionPage eyebrow="Red Team stress test" title="Break the plan before reality does" company={r.companyName} watermark={watermark}>
       <Brief brief={r.redTeam.brief} />
       <Text style={s.h2}>Stress scenarios</Text>
       <View style={s.table}>
@@ -264,10 +272,10 @@ function RedTeamPage({ r }: { r: ReportData }) {
   );
 }
 
-function RoomPage({ r }: { r: ReportData }) {
+function RoomPage({ r, watermark }: { r: ReportData; watermark: Watermark }) {
   const room = r.room;
   return (
-    <SectionPage eyebrow="Decision Room" title="Where the stakeholders stand" company={r.companyName}>
+    <SectionPage eyebrow="Decision Room" title="Where the stakeholders stand" company={r.companyName} watermark={watermark}>
       <Brief brief={room.brief} />
       {room.disagreements.length > 0 && (
         <>
@@ -304,15 +312,15 @@ function RoomPage({ r }: { r: ReportData }) {
   );
 }
 
-export function ExecutiveSummaryDocument({ report }: { report: ReportData }) {
+export function ExecutiveSummaryDocument({ report, watermark = "none" }: { report: ReportData; watermark?: Watermark }) {
   const has = (id: ReportData["sections"][number]) => report.sections.includes(id);
   return (
     <Document title={`${report.companyName} — Executive Summary`} author={report.preparedBy || "BridgeGen"} creator="BridgeGen" producer="BridgeGen">
-      <Cover r={report} />
-      {has("capital") && <CapitalPage r={report} />}
-      {has("governance") && <GovernancePage r={report} />}
-      {has("redTeam") && <RedTeamPage r={report} />}
-      {has("room") && <RoomPage r={report} />}
+      <Cover r={report} watermark={watermark} />
+      {has("capital") && <CapitalPage r={report} watermark={watermark} />}
+      {has("governance") && <GovernancePage r={report} watermark={watermark} />}
+      {has("redTeam") && <RedTeamPage r={report} watermark={watermark} />}
+      {has("room") && <RoomPage r={report} watermark={watermark} />}
     </Document>
   );
 }
