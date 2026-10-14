@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { CheckCircle2, Circle, RefreshCw, ShieldCheck } from "lucide-react";
+import { ExportDialog } from "@/components/report/export-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { detectGaps } from "@/lib/room/gaps";
@@ -93,6 +94,18 @@ export function FacilitatorView() {
                 </p>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Executive summary</CardTitle>
+            <CardDescription>
+              A branded PDF of the scenario, governance, stress test and these gaps, for the client file.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExportDialog gaps={companyId ? remote.data : localGaps} />
           </CardContent>
         </Card>
 
