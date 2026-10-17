@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Third-party reference clones kept locally (gitignored), not part of the app.
+    "anthropic-quickstarts/**",
+    "claude-code/**",
+    "obsidian-api/**",
+    // Installed agent skills (vendored scripts and bundles).
+    ".agents/**",
+    ".claude/**",
   ]),
 ]);
 

@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# third-party reference clones (nested git repos), not part of the app
+/anthropic-quickstarts/
+/claude-code/
+/obsidian-api/
