@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { COMPANY_POLICY, decide, type CompanyAction, type FirmRole } from "./policy";
+import {
+  COMPANY_POLICY,
+  FIRM_POLICY,
+  canChangeMember,
+  decide,
+  decideFirm,
+  invitableRoles,
+  type CompanyAction,
+  type FirmAction,
+  type FirmRole,
+} from "./policy";
 
 const company = { kind: "company" as const, ownerId: "creator" };
 const as = (firmRole: FirmRole | null, id = "someone") => ({ id, firmRole });
@@ -43,5 +53,49 @@ describe("company policy", () => {
 
   it("mirrors the RLS delete rule: creators, owners and admins", () => {
     expect(COMPANY_POLICY.delete).toEqual(["firm_owner", "firm_admin", "company_creator"]);
+  });
+});
+
+describe("firm policy", () => {
+  it("lets every member view the firm, but only owners and admins rename it or invite", () => {
+    expect(decideFirm("member", "firm:view")).toBe(true);
+    for (const action of ["firm:rename", "members:invite"] as const) {
+      expect(decideFirm("owner", action)).toBe(true);
+      expect(decideFirm("admin", action)).toBe(true);
+      expect(decideFirm("member", action)).toBe(false);
+    }
+    for (const action of Object.keys(FIRM_POLICY) as FirmAction[]) expect(decideFirm(null, action)).toBe(false);
+  });
+
+  it("never offers owner in an invitation, and offers nothing to members", () => {
+    expect(invitableRoles("owner")).toEqual(["admin", "member"]);
+    expect(invitableRoles("admin")).toEqual(["admin", "member"]);
+    expect(invitableRoles("member")).toEqual([]);
+    expect(invitableRoles(null)).toEqual([]);
+  });
+
+  const actor = (role: FirmRole | null, id = "actor") => ({ id, role });
+  const target = (role: FirmRole, id = "target") => ({ id, role });
+
+  it("lets owners change anyone's role or remove anyone", () => {
+    for (const role of ["owner", "admin", "member"] as const) {
+      expect(canChangeMember(actor("owner"), target(role), { kind: "remove" })).toBe(true);
+      expect(canChangeMember(actor("owner"), target(role), { kind: "role", role: "owner" })).toBe(true);
+    }
+  });
+
+  it("keeps admins away from owners and from granting owner (mirrors RLS)", () => {
+    expect(canChangeMember(actor("admin"), target("member"), { kind: "role", role: "admin" })).toBe(true);
+    expect(canChangeMember(actor("admin"), target("admin"), { kind: "remove" })).toBe(true);
+    expect(canChangeMember(actor("admin"), target("member"), { kind: "role", role: "owner" })).toBe(false);
+    expect(canChangeMember(actor("admin"), target("owner"), { kind: "remove" })).toBe(false);
+    expect(canChangeMember(actor("admin"), target("owner"), { kind: "role", role: "member" })).toBe(false);
+  });
+
+  it("lets anyone leave, but members change nothing else, and outsiders nothing at all", () => {
+    expect(canChangeMember(actor("member", "me"), target("member", "me"), { kind: "remove" })).toBe(true);
+    expect(canChangeMember(actor("member"), target("member"), { kind: "remove" })).toBe(false);
+    expect(canChangeMember(actor("member", "me"), target("member", "me"), { kind: "role", role: "admin" })).toBe(false);
+    expect(canChangeMember(actor(null, "me"), target("member", "me"), { kind: "remove" })).toBe(false);
   });
 });

@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isSupabaseConfigured } from "@/lib/env";
 import { defaultSnapshot, fromRow, toRow, type CompanyRow } from "@/lib/persistence/serialize";
 import { COMPANY_COLUMNS, useSessionStore } from "@/lib/session/store";
@@ -19,6 +20,12 @@ interface CompanySummary {
   id: string;
   name: string;
   updated_at: string;
+  firm_id: string;
+}
+
+interface FirmOption {
+  id: string;
+  name: string;
 }
 
 const MAX_NAME = 120;
@@ -97,10 +104,13 @@ function CompanyItem({
 export function CompanyList() {
   const router = useRouter();
   const nameId = useId();
+  const firmSelectId = useId();
   const user = useSessionStore((s) => s.user);
   const ready = useSessionStore((s) => s.ready);
   const activeId = useSimulatorStore((s) => s.companyId);
   const [companies, setCompanies] = useState<CompanySummary[] | null>(null);
+  const [firms, setFirms] = useState<FirmOption[]>([]);
+  const [chosenFirm, setChosenFirm] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -114,12 +124,22 @@ export function CompanyList() {
     let cancelled = false;
     supabase
       .from("companies")
-      .select("id, name, updated_at")
+      .select("id, name, updated_at, firm_id")
       .order("updated_at", { ascending: false })
       .then(({ data, error: loadError }) => {
         if (cancelled) return;
         if (loadError) setError(loadError.message);
         else setCompanies(data);
+      });
+    // Oldest membership first: the personal firm, where companies land by default.
+    supabase
+      .from("firm_members")
+      .select("firms(id, name)")
+      .eq("user_id", user.id)
+      .order("created_at")
+      .returns<{ firms: FirmOption | null }[]>()
+      .then(({ data }) => {
+        if (!cancelled) setFirms((data ?? []).flatMap((m) => (m.firms ? [m.firms] : [])));
       });
     return () => {
       cancelled = true;
@@ -145,6 +165,8 @@ export function CompanyList() {
   }
 
   const supabase = () => getBrowserClient()!;
+  const multiFirm = firms.length > 1;
+  const targetFirm = firms.find((f) => f.id === chosenFirm)?.id ?? firms[0]?.id ?? null;
 
   const open = async (id: string) => {
     const { data, error: openError } = await supabase()
@@ -166,7 +188,8 @@ export function CompanyList() {
     if (!name) return;
     const { data, error: createError } = await supabase()
       .from("companies")
-      .insert({ name, ...toRow(defaultSnapshot()) })
+      // Without a firm_id the database files it in the advisor's first firm.
+      .insert({ name, ...toRow(defaultSnapshot()), ...(multiFirm && targetFirm ? { firm_id: targetFirm } : {}) })
       .select("id")
       .single<{ id: string }>();
     if (createError || !data) {
@@ -187,8 +210,10 @@ export function CompanyList() {
   };
 
   const remove = async (id: string) => {
-    const { error: deleteError } = await supabase().from("companies").delete().eq("id", id);
+    const { data, error: deleteError } = await supabase().from("companies").delete().eq("id", id).select("id");
     if (deleteError) setError(deleteError.message);
+    // RLS turns a refused delete into "no rows", not an error.
+    else if (!data?.length) setError("Only the firm's owners and admins, or whoever created this company, can delete it.");
     else {
       if (id === activeId) useSimulatorStore.getState().exitToDemo();
       refresh();
@@ -204,10 +229,29 @@ export function CompanyList() {
         </CardHeader>
         <CardContent>
           <form className="flex flex-wrap items-end gap-3" onSubmit={create}>
-            <div className="grid min-w-0 flex-1 gap-1.5">
+            <div className="grid min-w-0 flex-1 basis-56 gap-1.5">
               <Label htmlFor={nameId}>Company name</Label>
               <Input id={nameId} value={newName} maxLength={MAX_NAME} placeholder="e.g. Hartwell Family Holdings" onChange={(e) => setNewName(e.target.value)} />
             </div>
+            {multiFirm && (
+              <div className="grid gap-1.5">
+                <Label htmlFor={firmSelectId}>Firm</Label>
+                <Select
+                  items={firms.map((f) => ({ value: f.id, label: f.name }))}
+                  value={targetFirm}
+                  onValueChange={(id) => id && setChosenFirm(id)}
+                >
+                  <SelectTrigger id={firmSelectId} className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {firms.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Button type="submit" disabled={!newName.trim()}>
               <Plus data-icon="inline-start" />
               Create
@@ -220,30 +264,43 @@ export function CompanyList() {
 
       <section className="grid gap-3" aria-labelledby="companies-heading">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 id="companies-heading" className="font-heading text-lg font-semibold">Your companies</h2>
-          {activeId && (
-            <Button variant="ghost" size="sm" onClick={() => useSimulatorStore.getState().exitToDemo()}>
-              Switch to demo company
+          <h2 id="companies-heading" className="font-heading text-lg font-semibold">{multiFirm ? "Your firms' companies" : "Your companies"}</h2>
+          <div className="flex flex-wrap items-center gap-1">
+            {activeId && (
+              <Button variant="ghost" size="sm" onClick={() => useSimulatorStore.getState().exitToDemo()}>
+                Switch to demo company
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/team" />}>
+              <Users data-icon="inline-start" />
+              Team
             </Button>
-          )}
+          </div>
         </div>
         {companies === null ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : companies.length === 0 ? (
           <p className="text-sm text-muted-foreground">No companies yet. Create your first one above.</p>
         ) : (
-          <ul className="grid gap-3">
-            {companies.map((c) => (
-              <CompanyItem
-                key={c.id}
-                company={c}
-                active={c.id === activeId}
-                onOpen={() => void open(c.id)}
-                onRename={(name) => rename(c.id, name)}
-                onDelete={() => remove(c.id)}
-              />
-            ))}
-          </ul>
+          (multiFirm ? firms.map((f) => ({ firm: f, items: companies.filter((c) => c.firm_id === f.id) })) : [{ firm: null, items: companies }])
+            .filter((group) => group.items.length > 0)
+            .map((group) => (
+              <div key={group.firm?.id ?? "all"} className="grid gap-2">
+                {group.firm && <h3 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{group.firm.name}</h3>}
+                <ul className="grid gap-3">
+                  {group.items.map((c) => (
+                    <CompanyItem
+                      key={c.id}
+                      company={c}
+                      active={c.id === activeId}
+                      onOpen={() => void open(c.id)}
+                      onRename={(name) => rename(c.id, name)}
+                      onDelete={() => remove(c.id)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))
         )}
       </section>
     </div>

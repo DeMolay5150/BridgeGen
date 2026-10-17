@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isSupabaseConfigured } from "@/lib/env";
+import { safeNext } from "@/lib/safe-next";
 import { getBrowserClient } from "@/lib/supabase/client";
 
 type Mode = "signIn" | "signUp";
@@ -22,8 +23,11 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const searchParams = useSearchParams();
+  // Where to go after signing in, e.g. back to a firm invitation.
+  const next = safeNext(searchParams.get("next"));
   // Set by /auth/confirm when an email link is expired or already used.
-  const linkFailed = useSearchParams().get("error") === "confirmation";
+  const linkFailed = searchParams.get("error") === "confirmation";
   const [message, setMessage] = useState<{ tone: "error" | "info"; text: string } | null>(
     linkFailed
       ? {
@@ -63,14 +67,14 @@ export function LoginForm() {
         : await supabase.auth.signUp({
             email,
             password,
-            options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+            options: { emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next)}` },
           });
     setBusy(false);
 
     if (result.error) {
       setMessage({ tone: "error", text: result.error.message });
     } else if (result.data.session) {
-      router.push("/companies");
+      router.push(next);
       router.refresh();
     } else {
       setMessage({ tone: "info", text: "Check your email to confirm your account, then sign in." });

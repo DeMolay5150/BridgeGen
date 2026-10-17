@@ -178,6 +178,53 @@ describe.skipIf(!configured)("row-level security (live Supabase project)", () =>
     });
   });
 
+  describe("firm invitations", () => {
+    const token = generateToken();
+
+    it("lets an owner invite by email but not a plain member, and hides invitations from outsiders", async () => {
+      const { error } = await alice.from("firm_invites").insert({ firm_id: firmId, email: emails.bob, role: "member", token_hash: hashToken(token) });
+      expect(error).toBeNull();
+      const { error: memberError } = await carol
+        .from("firm_invites")
+        .insert({ firm_id: firmId, email: "someone@example.test", role: "member", token_hash: hashToken(generateToken()) });
+      expect(memberError).not.toBeNull();
+      await expectNoRows(bob.from("firm_invites").select("id"));
+      await expectNoRows(anon.from("firm_invites").select("id"));
+    });
+
+    it("previews the invitation without revealing the invited address", async () => {
+      const { data } = await bob.rpc("firm_invite_preview", { invite_hash: hashToken(token) });
+      expect(data).toEqual([expect.objectContaining({ role: "member", email_matches: true, expired: false, already_member: false })]);
+      expect(JSON.stringify(data)).not.toContain(emails.bob);
+      const { data: other } = await carol.rpc("firm_invite_preview", { invite_hash: hashToken(token) });
+      expect((other as { email_matches: boolean }[])[0].email_matches).toBe(false);
+    });
+
+    it("refuses a forwarded link, accepts the invitee once, and shows them the roster", async () => {
+      const { error: forwarded } = await carol.rpc("accept_firm_invite", { invite_hash: hashToken(token) });
+      expect(forwarded).not.toBeNull();
+      const { data: joined, error } = await bob.rpc("accept_firm_invite", { invite_hash: hashToken(token) });
+      expect(error).toBeNull();
+      expect(joined).toBe(firmId);
+      const { error: reused } = await bob.rpc("accept_firm_invite", { invite_hash: hashToken(token) });
+      expect(reused).not.toBeNull();
+      const { data: companies } = await bob.from("companies").select("id").eq("id", companyId);
+      expect(companies).toHaveLength(1);
+      const { data: roster } = await bob.rpc("firm_roster", { target: firmId });
+      expect((roster as { email: string }[]).map((m) => m.email).sort()).toEqual([emails.alice, emails.bob, emails.carol].sort());
+      // Leave again: the API tests below rely on bob being an outsider.
+      const { error: leaveError } = await bob.from("firm_members").delete().eq("firm_id", firmId).eq("user_id", userIds[1]);
+      expect(leaveError).toBeNull();
+    });
+
+    it("gives outsiders and signed-out visitors no roster", async () => {
+      const { data } = await bob.rpc("firm_roster", { target: firmId });
+      expect(data ?? []).toHaveLength(0);
+      const { error } = await anon.rpc("firm_roster", { target: firmId });
+      expect(error).not.toBeNull();
+    });
+  });
+
   describe.skipIf(!baseUrl)("API routes", () => {
     it("rejects unknown and malformed invite tokens with 404", async () => {
       expect((await fetch(`${baseUrl}/api/respond/${generateToken()}`)).status).toBe(404);

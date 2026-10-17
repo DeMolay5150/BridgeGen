@@ -68,3 +68,49 @@ export function decide(principal: Principal, resource: CompanyResource, action: 
     ? { allowed: true, action, reason: granted }
     : { allowed: false, action, reason: roles.length ? `requires ${COMPANY_POLICY[action].join(" or ")}` : "not a firm member" };
 }
+
+/* ---------------------------------------------------------------------------
+ * Firms (workspaces). Same shape: a table of actions → firm roles, default
+ * deny. Kept in step with the firms and firm_invites RLS policies.
+ * ------------------------------------------------------------------------- */
+
+export type FirmAction =
+  | "firm:view"
+  | "firm:rename"
+  /** Create, list and revoke invitations to join the firm. */
+  | "members:invite";
+
+export const FIRM_POLICY: Record<FirmAction, FirmRole[]> = {
+  "firm:view": ["owner", "admin", "member"],
+  "firm:rename": ["owner", "admin"],
+  "members:invite": ["owner", "admin"],
+};
+
+export function decideFirm(role: FirmRole | null, action: FirmAction): boolean {
+  return role !== null && FIRM_POLICY[action].includes(role);
+}
+
+/** Roles an inviter may offer. Invitations never grant owner: owners promote after joining. */
+export function invitableRoles(role: FirmRole | null): FirmRole[] {
+  return decideFirm(role, "members:invite") ? ["admin", "member"] : [];
+}
+
+export type MemberChange = { kind: "remove" } | { kind: "role"; role: FirmRole };
+
+/**
+ * Whether `actor` may make `change` to `target`'s membership. Owners manage
+ * everyone; admins manage non-owners and never grant owner; anyone may leave.
+ * Mirrors the firm_members RLS policies. The last-owner rule is enforced by
+ * the database trigger, which knows the whole roster.
+ */
+export function canChangeMember(
+  actor: { id: string; role: FirmRole | null },
+  target: { id: string; role: FirmRole },
+  change: MemberChange,
+): boolean {
+  if (actor.role === null) return false;
+  if (change.kind === "remove" && actor.id === target.id) return true;
+  if (actor.role === "owner") return true;
+  if (actor.role === "admin") return target.role !== "owner" && (change.kind === "remove" || change.role !== "owner");
+  return false;
+}

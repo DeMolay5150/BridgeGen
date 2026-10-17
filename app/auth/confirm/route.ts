@@ -1,10 +1,11 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNext } from "@/lib/safe-next";
 import { getServerClient } from "@/lib/supabase/server";
 
 const OTP_TYPES: EmailOtpType[] = ["signup", "invite", "magiclink", "recovery", "email_change", "email"];
 
-/** Lands the email-confirmation link: exchanges its code for a session, then opens Companies. */
+/** Lands the email-confirmation link: exchanges its code for a session, then opens ?next= (default Companies). */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const supabase = await getServerClient();
@@ -21,5 +22,5 @@ export async function GET(request: NextRequest) {
       ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
       : { error: new Error("Missing confirmation code") };
 
-  return error ? fail : NextResponse.redirect(new URL("/companies", origin));
+  return error ? fail : NextResponse.redirect(new URL(safeNext(searchParams.get("next")), origin));
 }

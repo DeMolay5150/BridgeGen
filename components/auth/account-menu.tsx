@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Building2, Check, Loader2, LogOut, UserRound } from "lucide-react";
+import { AlertCircle, Building2, Check, Loader2, LogOut, UserRound, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -87,6 +87,10 @@ export function AccountMenu() {
             <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/companies" />}>
               <Building2 data-icon="inline-start" />
               Companies
+            </Button>
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/team" />}>
+              <Users data-icon="inline-start" />
+              Team
             </Button>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut data-icon="inline-start" />

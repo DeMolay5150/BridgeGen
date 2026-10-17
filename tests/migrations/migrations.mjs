@@ -17,7 +17,7 @@ const db = new PGlite();
 await db.exec(`
   create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
   create schema auth;
-  create table auth.users (id uuid primary key, email text);
+  create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz default now());
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   grant usage on schema public, auth to anon, authenticated, service_role;
   grant execute on function auth.uid() to anon, authenticated;
@@ -175,6 +175,64 @@ if (files.some((f) => f.endsWith("_hardening.sql"))) {
   );
   check("hardening: no API role holds EXECUTE on a trigger function", grants.rows[0]?.n === 0);
   check("hardening: the triggers still run (insert lands in a firm)", ok(await as("bob", "insert into companies (name) values ('After hardening') returning firm_id")));
+}
+
+// Firm invitations (fifth migration)
+if (files.some((f) => f.endsWith("_firm_invites.sql"))) {
+  const hash = (c) => c.repeat(64);
+  const invite = (who, email, role, h, invitedBy) =>
+    invitedBy
+      ? as(who, "insert into firm_invites (firm_id, email, role, token_hash, invited_by) values ($1, $2, $3, $4, $5) returning id", [firmId, email, role, h, invitedBy])
+      : as(who, "insert into firm_invites (firm_id, email, role, token_hash) values ($1, $2, $3, $4) returning id", [firmId, email, role, h]);
+  check("invites: the owner invites a colleague by email", ok(await invite("alice", "bob@x.test", "member", hash("b"))));
+  check("invites: an admin can invite an admin", ok(await invite("carol", "dan@x.test", "admin", hash("d"))));
+  check("invites: nobody can invite straight to owner", failed(await invite("alice", "erin@x.test", "owner", hash("e"))));
+  check("invites: an outsider can't invite into the firm", failed(await invite("bob", "x@x.test", "member", hash("f"))));
+  check("invites: the inviter can't be forged", failed(await invite("alice", "y@x.test", "member", hash("9"), ids.carol)));
+  check("invites: an outsider can't read them", (await as("bob", "select id from firm_invites")).rows.length === 0);
+  const anonInvites = await as("anon", "select id from firm_invites");
+  check("invites: anon can't read them", failed(anonInvites) || anonInvites.rows.length === 0);
+
+  const preview = (who, h) => as(who, "select * from public.firm_invite_preview($1)", [h]);
+  const p = (await preview("bob", hash("b"))).rows[0];
+  check(
+    "invites: the invitee previews the firm without seeing the address",
+    p?.role === "member" && p?.email_matches === true && p?.expired === false && !("email" in (p ?? {})),
+  );
+  check("invites: someone else holding the link is told it isn't theirs", (await preview("dan", hash("b"))).rows[0]?.email_matches === false);
+  check(
+    "invites: anon can't preview or accept",
+    failed(await preview("anon", hash("b"))) && failed(await as("anon", "select public.accept_firm_invite($1)", [hash("b")])),
+  );
+
+  const accept = (who, h) => as(who, "select public.accept_firm_invite($1) as firm", [h]);
+  const role = async (who) => (await as(who, "select role from firm_members where firm_id = $1 and user_id = auth.uid()", [firmId])).rows[0]?.role;
+  check("invites: a forwarded link doesn't work for a different account", failed(await accept("dan", hash("b"))));
+  await db.query("update auth.users set email_confirmed_at = null where id = $1", [ids.bob]);
+  check("invites: an unconfirmed email can't accept", failed(await accept("bob", hash("b"))));
+  await db.query("update auth.users set email_confirmed_at = now() where id = $1", [ids.bob]);
+  await as("service", "update firm_invites set expires_at = now() - interval '1 minute' where token_hash = $1", [hash("d")]);
+  check("invites: an expired invitation can't be accepted", failed(await accept("dan", hash("d"))));
+  check("invites: unknown links are refused", failed(await accept("bob", hash("c"))));
+  check("invites: the invitee accepts and lands in the firm", (await accept("bob", hash("b"))).rows[0]?.firm === firmId);
+  check("invites: with the invited role", (await role("bob")) === "member");
+  check("invites: the link is spent", failed(await accept("bob", hash("b"))));
+  check("invites: the new member sees the firm's companies", (await as("bob", "select id from companies where firm_id = $1", [firmId])).rows.length > 0);
+  check("invites: a plain member can't invite", failed(await invite("bob", "z@x.test", "member", hash("8"))));
+
+  await invite("alice", "bob@x.test", "admin", hash("7"));
+  await accept("bob", hash("7"));
+  check("invites: accepting again never changes an existing member's role", (await role("bob")) === "member");
+  check("invites: an admin revokes an invitation", (await as("carol", "delete from firm_invites where token_hash = $1 returning id", [hash("d")])).rows.length === 1);
+
+  const roster = await as("bob", "select email, role from public.firm_roster($1)", [firmId]);
+  check(
+    "roster: colleagues see each other's email and role, owners first",
+    roster.rows.length === 3 && roster.rows[0]?.role === "owner" && roster.rows.some((r) => r.email === "bob@x.test"),
+  );
+  check("roster: outsiders get nothing", (await as("dan", "select * from public.firm_roster($1)", [firmId])).rows.length === 0);
+  check("roster: anon can't call it", failed(await as("anon", "select * from public.firm_roster($1)", [firmId])));
+  await as("bob", "delete from firm_members where firm_id = $1 and user_id = auth.uid()", [firmId]);
 }
 
 // Account deletion
