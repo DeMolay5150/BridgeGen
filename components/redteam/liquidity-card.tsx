@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { compareLiquidity, type CaseResult } from "@/lib/alerts/liquidity";
 import { formatMoney } from "@/lib/simulator/format";
 import { useSimulatorStore } from "@/lib/simulator/store";
-import { DEFAULT_STATEMENT_ASSUMPTIONS } from "@/lib/statements/model";
+import { statementAssumptions } from "@/lib/statements/model";
 import { cn } from "@/lib/utils";
 
 function CaseCell({ result }: { result: CaseResult }) {
@@ -52,10 +52,10 @@ function CaseCell({ result }: { result: CaseResult }) {
 export function LiquidityCard() {
   const baseline = useSimulatorStore((s) => s.baseline);
   const scenario = useSimulatorStore((s) => s.scenario);
-  const growth = useSimulatorStore((s) => s.fork.assumptions.ebitdaGrowth);
+  const fork = useSimulatorStore((s) => s.fork);
   const comparison = useMemo(
-    () => compareLiquidity(baseline, scenario, { ...DEFAULT_STATEMENT_ASSUMPTIONS, revenueGrowth: growth }),
-    [baseline, scenario, growth],
+    () => compareLiquidity(baseline, scenario, statementAssumptions(fork)),
+    [baseline, scenario, fork],
   );
 
   const rows = [

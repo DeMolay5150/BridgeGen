@@ -60,6 +60,16 @@ describe("IC deck", () => {
     expect(JSON.stringify(deck)).not.toMatch(/positions|predictions/);
   });
 
+  it("uses the company's saved three-statement inputs, not the defaults", () => {
+    const taxed = buildIcDeck({
+      ...input,
+      snapshot: { ...snapshot, fork: { ...snapshot.fork, statements: { ...snapshot.fork.statements, taxRate: 0.4 } } },
+    });
+    const summary = (d: typeof deck) => d.slides.find((s) => s.title === "Ten-year financial summary")!;
+    expect(JSON.stringify(summary(taxed))).toContain("40% tax");
+    expect(JSON.stringify(summary(deck))).toContain("25% tax");
+  });
+
   it("caps recommended actions and removes duplicates", () => {
     const actions = slide("Recommended actions");
     expect(actions.kind === "bullets" && actions.bullets.length).toBeLessThanOrEqual(6);

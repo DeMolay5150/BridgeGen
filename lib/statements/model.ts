@@ -2,6 +2,7 @@ import { amortize, irr, wacc } from "../finance";
 import { PROJECTION_YEARS } from "../projection/model";
 import { BASELINE_LIMITS, clamp, neutralScenario } from "../simulator/defaults";
 import { simulate } from "../simulator/engine";
+import type { ForkState } from "../projection/types";
 import type { Baseline, Scenario } from "../simulator/types";
 
 /** Operating assumptions behind the three statements. Fractions; "% revenue" unless noted. */
@@ -22,7 +23,10 @@ export interface StatementAssumptions {
   costOfEquity: number;
 }
 
-export const DEFAULT_STATEMENT_ASSUMPTIONS: Omit<StatementAssumptions, "revenueGrowth"> = {
+/** The editable, saved part: growth comes from the shared projection assumptions. */
+export type OperatingAssumptions = Omit<StatementAssumptions, "revenueGrowth">;
+
+export const DEFAULT_STATEMENT_ASSUMPTIONS: OperatingAssumptions = {
   taxRate: 0.25,
   depreciation: 0.03,
   capex: 0.035,
@@ -33,7 +37,15 @@ export const DEFAULT_STATEMENT_ASSUMPTIONS: Omit<StatementAssumptions, "revenueG
   costOfEquity: 0.14,
 };
 
-export const STATEMENT_RANGES: Record<Exclude<keyof StatementAssumptions, "revenueGrowth">, { min: number; max: number; step: number }> = {
+/**
+ * The statement assumptions every module uses for a company: its saved
+ * operating inputs plus the growth rate shared with Fork the Future.
+ */
+export function statementAssumptions(fork: Pick<ForkState, "assumptions" | "statements">): StatementAssumptions {
+  return { ...fork.statements, revenueGrowth: fork.assumptions.ebitdaGrowth };
+}
+
+export const STATEMENT_RANGES: Record<keyof OperatingAssumptions, { min: number; max: number; step: number }> = {
   taxRate: { min: 0, max: 0.5, step: 0.01 },
   depreciation: { min: 0, max: 0.15, step: 0.005 },
   capex: { min: 0, max: 0.2, step: 0.005 },

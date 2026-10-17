@@ -1,3 +1,5 @@
+import type { OperatingAssumptions } from "../statements/model";
+
 /** Assumptions shared by both branches. Fractions (0.04 = 4%). */
 export interface ProjectionAssumptions {
   /** Annual EBITDA growth. */
@@ -49,4 +51,6 @@ export interface ForkState {
   a: BranchSpec;
   b: BranchSpec;
   assumptions: ProjectionAssumptions;
+  /** Three-statement operating inputs (tax, capex, working capital...), saved with the company. */
+  statements: OperatingAssumptions;
 }

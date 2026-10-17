@@ -100,7 +100,7 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 - [x] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels
   - Verified with a fake channel (16 tests, echo-suppression mutation-checked) and PGlite RLS; not yet end-to-end with two live browsers (needs the firms + realtime migrations pushed and two advisor accounts)
 - [x] Migrations firms / audit_log / realtime_rooms applied to `ahujzemhtytbiyuemuyy` (2026-10-14); live `pnpm test:rls` 12 passed, 4 API-route tests skipped (dev server not started)
-- Open: disable Realtime "Allow public access" and enable leaked-password protection (dashboard); push `20261017090000_hardening` (advisor follow-ups); persist the three-statement assumptions (needs a column)
+- Open: disable Realtime "Allow public access" and enable leaked-password protection (dashboard); push `20261017090000_hardening` (advisor follow-ups)
 
 ## Phase 7: Client delivery (presentation mode, IC deck, liquidity alerts, walkthrough)
 Note: BridgeGen is one repository; "across the 10 modules" = the ten capability areas inside it.
@@ -111,3 +111,10 @@ Note: BridgeGen is one repository; "across the 10 modules" = the ten capability 
 - [x] Task 7.5: Presentation mode (`/present`): full-screen, client-safe, four simplified levers, live KPIs
 - [~] Task 7.6: `WALKTHROUGH-SCRIPT.md` written; still to do: `/walkthrough` page and Remotion project in `video/` (exclude from tsconfig + eslint; check Remotion licence)
 
+
+## Phase 8: Re-audit against the 10 reference patterns (2026-10-17)
+All ten patterns were already integrated in Phases 5–6 (see substitutions there). Re-audit found:
+- [x] Build-breaker: untracked reference clones (`anthropic-quickstarts/`, `claude-code/`, `obsidian-api/`) and installed skills (`.agents/`) were swept into `tsc`/ESLint, failing `type-check`, `lint` and `build`. Excluded in tsconfig/ESLint; clones gitignored.
+- [x] Data desync: three-statement operating inputs lived in component state; Fork liquidity, Red Team liquidity and the IC deck silently used defaults, and edits were lost on navigation. Now `fork.statements` in the store, saved in the existing `fork` jsonb (no migration), read everywhere via `statementAssumptions()`.
+- [ ] Pattern 4 gap: firms/roles exist in the database but there is no way to add a colleague or pick a firm in the app, so every firm is single-seat. Needs a firm-invite route + UI + RLS tests + a migration push (sign-off).
+- [ ] Realtime still unverified with two live browsers.

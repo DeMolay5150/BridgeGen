@@ -8,7 +8,7 @@ const custom: CompanySnapshot = {
   baseline: { revenue: 75, ebitda: 18, multiple: 7, existingDebt: 20, interestRate: 0.065, founderOwnership: 0.6 },
   scenario: { leverage: 2.5, equityTransfer: 0.3, multipleShock: -0.1, outsideCeo: true, ceoCost: 2, ceoUplift: 0.08 },
   governance: { ...defaultSnapshot().governance, votingRules: "yes", boardSeatsFilled: 4 },
-  fork: { a: { source: "dividend-recap", fixGovernance: true }, b: { source: "current", fixGovernance: false }, assumptions: { ebitdaGrowth: 0.06, cashConversion: 0.4 } },
+  fork: { a: { source: "dividend-recap", fixGovernance: true }, b: { source: "current", fixGovernance: false }, assumptions: { ebitdaGrowth: 0.06, cashConversion: 0.4 }, statements: { ...defaultSnapshot().fork.statements, taxRate: 0.3, capex: 0.05 } },
   priorities: { ...DEFAULT_PRIORITIES, lender: { ...DEFAULT_PRIORITIES.lender, resilience: 20 } },
 };
 
@@ -35,8 +35,17 @@ describe("company serialization", () => {
     expect(legacy.scenario.equityTransfer).toBe(0.5);
     expect(legacy.governance.votingRules).toBe("yes");
     expect(legacy.fork.assumptions).toEqual({ ebitdaGrowth: 0.02, cashConversion: 0.5 });
+    // Rows saved before the three-statement inputs were persisted get the defaults.
+    expect(legacy.fork.statements).toEqual(defaultSnapshot().fork.statements);
     expect(legacy.priorities.founder).toEqual({ ...DEFAULT_PRIORITIES.founder, control: 1 });
     expect(legacy.priorities.lender).toEqual(DEFAULT_PRIORITIES.lender);
+  });
+
+  it("keeps valid three-statement inputs and drops invalid ones", () => {
+    const s = fromRow({ baseline: {}, scenario: {}, governance: {}, fork: { statements: { taxRate: 0.35 } }, priorities: {} });
+    expect(s.fork.statements).toEqual({ ...defaultSnapshot().fork.statements, taxRate: 0.35 });
+    const bad = fromRow({ baseline: {}, scenario: {}, governance: {}, fork: { statements: { taxRate: "high" } }, priorities: {} });
+    expect(bad.fork.statements).toEqual(defaultSnapshot().fork.statements);
   });
 
   it("falls back to defaults for corrupt sections instead of crashing", () => {

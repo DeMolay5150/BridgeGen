@@ -6,6 +6,7 @@ import type { ForkState } from "../projection/types";
 import { DEFAULT_PRIORITIES, PRIORITY_KEYS, STAKEHOLDER_IDS, type Priorities } from "../simulator/alignment";
 import { DEMO_BASELINE, neutralScenario } from "../simulator/defaults";
 import type { Baseline, Scenario } from "../simulator/types";
+import { DEFAULT_STATEMENT_ASSUMPTIONS } from "../statements/model";
 
 /** Everything about a company that is saved. Mirrors the jsonb columns of `companies`. */
 export interface CompanySnapshot {
@@ -59,6 +60,19 @@ const forkSchema = z
     a: branch,
     b: branch,
     assumptions: z.object({ ebitdaGrowth: finite, cashConversion: finite }).partial(),
+    // Range-clamped by buildStatements, so only finiteness is checked here.
+    statements: z
+      .object({
+        taxRate: finite,
+        depreciation: finite,
+        capex: finite,
+        workingCapital: finite,
+        fixedAssets: finite,
+        minimumCash: finite,
+        debtTermYears: finite,
+        costOfEquity: finite,
+      })
+      .partial(),
   })
   .partial();
 // partialRecord: in Zod 4, z.record with enum keys requires every key to be present.
@@ -81,6 +95,7 @@ export function defaultSnapshot(): CompanySnapshot {
       a: { source: "today", fixGovernance: false },
       b: { source: "current", fixGovernance: false },
       assumptions: DEFAULT_ASSUMPTIONS,
+      statements: DEFAULT_STATEMENT_ASSUMPTIONS,
     },
     priorities: DEFAULT_PRIORITIES,
   };
@@ -105,6 +120,7 @@ export function fromRow(
       a: fork.a ?? d.fork.a,
       b: fork.b ?? d.fork.b,
       assumptions: { ...d.fork.assumptions, ...fork.assumptions },
+      statements: { ...d.fork.statements, ...fork.statements },
     },
     priorities: Object.fromEntries(
       STAKEHOLDER_IDS.map((id) => [id, { ...d.priorities[id], ...priorities[id] }]),

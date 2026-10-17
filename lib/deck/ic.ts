@@ -5,7 +5,7 @@ import { detectGaps } from "../room/gaps";
 import type { RoomGaps } from "../room/types";
 import { formatMoney, formatMultiple, formatPercent } from "../simulator/format";
 import type { Severity } from "../simulator/types";
-import { DEFAULT_STATEMENT_ASSUMPTIONS, buildStatements } from "../statements/model";
+import { buildStatements, statementAssumptions } from "../statements/model";
 import { runMonteCarlo } from "../statements/monte-carlo";
 import { buildRedTeamDeck, type Deck, type Slide } from "./redteam";
 
@@ -43,7 +43,7 @@ export function buildIcDeck(input: IcDeckInput): Deck {
     sections: REPORT_SECTIONS.map((s) => s.id).filter((id) => id !== "room" || input.gaps !== null),
     generatedAt: input.generatedAt,
   });
-  const assumptions = { ...DEFAULT_STATEMENT_ASSUMPTIONS, revenueGrowth: snapshot.fork.assumptions.ebitdaGrowth };
+  const assumptions = statementAssumptions(snapshot.fork);
   const statements = buildStatements(snapshot.baseline, snapshot.scenario, assumptions);
   const risk = runMonteCarlo(snapshot.baseline, snapshot.scenario, assumptions);
   const liquidity = compareLiquidity(snapshot.baseline, snapshot.scenario, assumptions);

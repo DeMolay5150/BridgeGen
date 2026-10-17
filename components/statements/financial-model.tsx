@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo } from "react";
 import Link from "next/link";
 import { Bar, BarChart, ReferenceLine, XAxis, YAxis } from "recharts";
 import { ExplainButton } from "@/components/explain/explain-button";
@@ -14,10 +14,10 @@ import { formatMoney, formatPercent, formatSignedPercent } from "@/lib/simulator
 import { useSimulatorStore } from "@/lib/simulator/store";
 import type { Severity } from "@/lib/simulator/types";
 import {
-  DEFAULT_STATEMENT_ASSUMPTIONS,
   STATEMENT_RANGES,
   buildStatements,
-  type StatementAssumptions,
+  statementAssumptions,
+  type OperatingAssumptions,
 } from "@/lib/statements/model";
 import { runMonteCarlo } from "@/lib/statements/monte-carlo";
 import { cn } from "@/lib/utils";
@@ -64,7 +64,7 @@ const CREDIT: StatementLine[] = [
   { label: "Debt / EBITDA", value: (y) => y.debtToEbitda, format: "multiple" },
 ];
 
-type AssumptionKey = Exclude<keyof StatementAssumptions, "revenueGrowth">;
+type AssumptionKey = keyof OperatingAssumptions;
 const ASSUMPTION_CONTROLS: { key: AssumptionKey; label: string; hint: string; display: (v: number) => string }[] = [
   { key: "taxRate", label: "Tax rate", hint: "On positive pre-tax profit", display: (v) => formatPercent(v) },
   { key: "capex", label: "Capex", hint: "% of revenue", display: (v) => formatPercent(v, 1) },
@@ -89,12 +89,9 @@ export function FinancialModel() {
   const scenario = useSimulatorStore((s) => s.scenario);
   const fork = useSimulatorStore((s) => s.fork);
   const setFork = useSimulatorStore((s) => s.setFork);
-  const [operating, setOperating] = useState(DEFAULT_STATEMENT_ASSUMPTIONS);
+  const operating = fork.statements;
 
-  const assumptions: StatementAssumptions = useMemo(
-    () => ({ ...operating, revenueGrowth: fork.assumptions.ebitdaGrowth }),
-    [operating, fork.assumptions.ebitdaGrowth],
-  );
+  const assumptions = useMemo(() => statementAssumptions(fork), [fork]);
   const model = useMemo(() => buildStatements(baseline, scenario, assumptions), [baseline, scenario, assumptions]);
 
   // A thousand paths per change: let slider drags stay smooth while it catches up.
@@ -178,7 +175,7 @@ export function FinancialModel() {
                 value={operating[c.key]}
                 range={STATEMENT_RANGES[c.key]}
                 display={c.display(operating[c.key])}
-                onChange={(value) => setOperating((o) => ({ ...o, [c.key]: value }))}
+                onChange={(value) => setFork({ statements: { ...operating, [c.key]: value } })}
               />
             ))}
           </CardContent>
