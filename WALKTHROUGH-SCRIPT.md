@@ -43,4 +43,4 @@
 
 ### Production notes
 - Capture at 1920×1080 with the demo company; reset between takes ("Back to today").
-- Planned automation: a Remotion project in `video/` that imports the real engines (`lib/simulator`, `lib/statements`, `lib/redteam`) so animated figures match the app, rendering to `public/walkthrough.mp4` for a `/walkthrough` page. Not built yet. Remotion requires a paid company licence for organisations with more than three people; check before using it commercially.
+- Automated version: the Remotion project in `video/` renders this shot list as motion graphics, with the VO lines as on-screen captions (no audio yet). Every figure comes from the real engines via `video/src/data.ts`, so the video can't drift from the product. Render with `pnpm video:render` (→ `video/out/walkthrough.mp4`); `--out ../public/walkthrough.mp4` publishes it for a future `/walkthrough` page. Remotion requires a paid company licence for organisations with more than three people; check before using it commercially.

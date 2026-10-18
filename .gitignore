@@ -48,3 +48,7 @@ next-env.d.ts
 
 # browser test screenshots
 /tests/e2e/output/
+
+# Remotion walkthrough (own package): dependencies and renders
+/video/node_modules/
+/video/out/

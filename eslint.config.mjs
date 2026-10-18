@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "anthropic-quickstarts/**",
     "claude-code/**",
     "obsidian-api/**",
+    // Remotion walkthrough: its own package, dependencies and type-check (`pnpm --dir video type-check`).
+    "video/**",
     // Installed agent skills (vendored scripts and bundles).
     ".agents/**",
     ".claude/**",
