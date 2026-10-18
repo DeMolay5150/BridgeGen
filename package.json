@@ -13,8 +13,8 @@
     "test:rls": "vitest run --config vitest.rls.config.mts",
     "test:migrations": "node tests/migrations/migrations.mjs",
     "test:e2e": "node tests/e2e/multiseat.mjs",
-    "video:studio": "pnpm --dir video studio",
-    "video:render": "pnpm --dir video render"
+    "video:studio": "cd video && npx remotion studio src/index.ts",
+    "video:render": "cd video && node render.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

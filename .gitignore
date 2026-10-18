@@ -52,3 +52,6 @@ next-env.d.ts
 # Remotion walkthrough (own package): dependencies and renders
 /video/node_modules/
 /video/out/
+
+# rendered walkthrough video: re-rendered often, kept out of history (host externally)
+/public/walkthrough.mp4
