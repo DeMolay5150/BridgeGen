@@ -2,6 +2,7 @@ import { Fragment, type ComponentType } from "react";
 import { AbsoluteFill } from "remotion";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
+import { WALKTHROUGH_CHAPTERS } from "../../lib/walkthrough";
 import { Close, ColdOpen } from "./scenes/bookends";
 import { DECK_SLIDES, DeckBuild, DeckSlides, SLIDE_SECONDS } from "./scenes/deck";
 import { RedTeam, RoomGaps, RoomMap } from "./scenes/room";
@@ -30,6 +31,19 @@ const frames = (seconds: number) => Math.round(seconds * FPS);
 
 /** Crossfades overlap neighbouring scenes, so they shorten the total. */
 export const DURATION_IN_FRAMES = SCENES.reduce((sum, s) => sum + frames(s.seconds), 0) - FADE_FRAMES * (SCENES.length - 1);
+
+/** When each scene starts, in seconds, after the crossfades before it. */
+export const SCENE_STARTS: Record<string, number> = Object.fromEntries(
+  SCENES.map((s, i) => [s.id, (SCENES.slice(0, i).reduce((sum, p) => sum + frames(p.seconds), 0) - FADE_FRAMES * i) / FPS]),
+);
+
+// The /walkthrough page links chapters to these times: refuse to render a video they don't match.
+for (const chapter of WALKTHROUGH_CHAPTERS) {
+  const actual = SCENE_STARTS[chapter.sceneId];
+  if (actual === undefined || Math.abs(actual - chapter.start) > 1e-6) {
+    throw new Error(`Chapter "${chapter.title}" says ${chapter.start}s but scene "${chapter.sceneId}" starts at ${actual}s. Update lib/walkthrough.ts.`);
+  }
+}
 
 export function Walkthrough() {
   return (

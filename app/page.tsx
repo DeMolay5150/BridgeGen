@@ -38,6 +38,9 @@ export default function Home() {
           <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/pricing" />}>
             See pricing
           </Button>
+          <Button size="lg" variant="ghost" nativeButton={false} render={<Link href="/walkthrough" />}>
+            Watch the 3-minute walkthrough
+          </Button>
         </div>
       </div>
     </main>

@@ -110,7 +110,8 @@ Note: BridgeGen is one repository; "across the 10 modules" = the ten capability 
 - [x] Task 7.4: IC deck (.pptx / PDF / Marp) from Simulator + Decision Room: scenario vs today, statements, Monte Carlo, liquidity, governance, stress, room gaps
 - [x] Task 7.5: Presentation mode (`/present`): full-screen, client-safe, four simplified levers, live KPIs
 - [x] Task 7.6: `WALKTHROUGH-SCRIPT.md` + Remotion project in `video/` (own package, Remotion 4.0.533; figures from the engines via `video/src/data.ts`; `pnpm video:render`, preview frames via `--still`). Excluded from root tsconfig/eslint.
-  - Open: voice-over audio, a `/walkthrough` page serving `public/walkthrough.mp4`, Remotion company-licence check
+  - [x] `/walkthrough` page (chapters, seek, follow-along) streaming from public Supabase Storage bucket `media` (created by `pnpm video:upload`; anonymous writes refused by RLS, range requests OK); landing-page link. Video files gitignored.
+  - Open: voice-over audio, Remotion company-licence check
 
 
 ## Phase 8: Re-audit against the 10 reference patterns (2026-10-17)

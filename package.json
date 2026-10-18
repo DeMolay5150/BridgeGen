@@ -14,7 +14,8 @@
     "test:migrations": "node tests/migrations/migrations.mjs",
     "test:e2e": "node tests/e2e/multiseat.mjs",
     "video:studio": "cd video && npx remotion studio src/index.ts",
-    "video:render": "cd video && node render.mjs"
+    "video:render": "cd video && node render.mjs",
+    "video:upload": "cd video && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON upload.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
