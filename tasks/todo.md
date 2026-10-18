@@ -30,7 +30,7 @@
 
 ## Phase 4: System of Record
 - [x] Task 4.1: Supabase persistence and auth — migration applied to project `ahujzemhtytbiyuemuyy`; `pnpm test:rls` 9/9 against the live project incl. an end-to-end confidential room run (2026-10-12)
-  - Open before launch: turn "Confirm email" back on with custom SMTP; set `NEXT_PUBLIC_SITE_URL`
+  - Open before launch: turn "Confirm email" back on with custom SMTP (`NEXT_PUBLIC_SITE_URL` is set in production: https://www.bridgegen.io)
 - [x] Task 4.2: Go-to-market pricing strategy (`PRICING.md`) and `/pricing` page (Section 10 copy, billing toggle, ROI calculator, comparison, FAQ)
   - Prices live in `lib/pricing/plans.ts`; unbuilt capabilities show "Coming soon"
   - Open: billing/plan limits (Stripe), real trial mechanics, `NEXT_PUBLIC_SALES_CONTACT_URL` for sales CTAs
@@ -100,7 +100,8 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 - [x] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels
   - Verified with a fake channel (16 tests, echo-suppression mutation-checked) and PGlite RLS; not yet end-to-end with two live browsers (needs the firms + realtime migrations pushed and two advisor accounts)
 - [x] Migrations firms / audit_log / realtime_rooms applied to `ahujzemhtytbiyuemuyy` (2026-10-14); live `pnpm test:rls` 12 passed, 4 API-route tests skipped (dev server not started)
-- Open: disable Realtime "Allow public access" and enable leaked-password protection (dashboard)
+- Open (dashboard): disable Realtime "Allow public access". Probed 2026-10-17: an anonymous client still joins public channels (the app only uses private, firm-only channels, so no company data is exposed, but the project can be used as an open relay)
+- Blocked: leaked-password protection (HaveIBeenPwned) needs the Supabase Pro plan; the BridgeGen org is on Free (checked 2026-10-17)
 
 ## Phase 7: Client delivery (presentation mode, IC deck, liquidity alerts, walkthrough)
 Note: BridgeGen is one repository; "across the 10 modules" = the ten capability areas inside it.
@@ -121,5 +122,14 @@ All ten patterns were already integrated in Phases 5–6 (see substitutions ther
 - [x] Pattern 4 gap closed: firm invitations (migration `20261017120000_firm_invites.sql`, email-bound one-time links, `firm_roster()`), firm routes + `FIRM_POLICY`/`canChangeMember`, firm-level audit events, `/team` and `/join/[token]`, firm picker and grouping on `/companies`, safe `?next=` after sign-in. PGlite: 79 checks (email gate mutation-checked). Live RLS tests added.
   - Fixed on the way: a member deleting a colleague's company saw it silently reappear (RLS returns no rows, not an error); now explained.
   - Pushed `20261017090000_hardening` + `20261017120000_firm_invites` to `ahujzemhtytbiyuemuyy` (2026-10-17); live `pnpm test:rls` 16 passed, 4 API-route tests skipped (no dev server). Security advisor: trigger-function grants gone; remaining SECURITY DEFINER notices are the intended RPCs (each checks auth.uid()/membership); room_responses no-policy is intentional.
-  - Open: invitation emails need SMTP (links are copied by hand for now); with "Confirm email" on, add `/auth/confirm**` to the Supabase redirect allow-list so `?next=` survives sign-up.
+  - Open: invitation emails need SMTP (links are copied by hand for now).
+  - [x] Supabase Auth URL configuration (Site URL + `https://www.bridgegen.io/**` redirects), verified by behaviour 2026-10-17: www paths honoured, foreign redirects and no-redirect links fall back to https://www.bridgegen.io.
 - [x] Two-profile browser check (2026-10-17, Playwright, isolated contexts, live Supabase, throwaway users deleted): /team, /join (incl. forwarded/spent links), roles, shared companies, Decision Room presence, removal: 18/18. Fixed: joined firm now opens after accepting (`/team?firm=`), "You're a owner" copy, companies list rendered ungrouped before firms loaded.
+
+## Phase 9: Production (2026-10-17)
+- [x] Vercel project `bridge-gen` (team BridgeGen, Hobby) connected to `DeMolay5150/BridgeGen` `main`; duplicate `bridge-gen-7y4q` removed
+- [x] Production env: Supabase URL, publishable key, secret key (sensitive), `NEXT_PUBLIC_SITE_URL=https://www.bridgegen.io`
+- [x] Custom domain: `www.bridgegen.io` (CNAME at Porkbun → Vercel), `bridgegen.io` 308 → www
+- [x] Security headers on every response (`next.config.ts`): frame-ancestors/X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, base-uri, object-src; X-Powered-By off; HSTS from Vercel
+- [x] Final verification on https://www.bridgegen.io at `8e93f45`: all routes 200, API refuses outsiders, `pnpm test:rls` with API routes 20/20, `pnpm test:e2e` 18/18, walkthrough streams from Storage
+- Not covered: a real confirmation email end to end (needs SMTP + an inbox)
