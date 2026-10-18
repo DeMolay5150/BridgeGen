@@ -45,3 +45,6 @@ next-env.d.ts
 /anthropic-quickstarts/
 /claude-code/
 /obsidian-api/
+
+# browser test screenshots
+/tests/e2e/output/
