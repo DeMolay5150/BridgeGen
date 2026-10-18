@@ -100,7 +100,7 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 - [x] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels
   - Verified with a fake channel (16 tests, echo-suppression mutation-checked) and PGlite RLS; not yet end-to-end with two live browsers (needs the firms + realtime migrations pushed and two advisor accounts)
 - [x] Migrations firms / audit_log / realtime_rooms applied to `ahujzemhtytbiyuemuyy` (2026-10-14); live `pnpm test:rls` 12 passed, 4 API-route tests skipped (dev server not started)
-- Open: disable Realtime "Allow public access" and enable leaked-password protection (dashboard); push `20261017090000_hardening` (advisor follow-ups)
+- Open: disable Realtime "Allow public access" and enable leaked-password protection (dashboard)
 
 ## Phase 7: Client delivery (presentation mode, IC deck, liquidity alerts, walkthrough)
 Note: BridgeGen is one repository; "across the 10 modules" = the ten capability areas inside it.
@@ -118,5 +118,6 @@ All ten patterns were already integrated in Phases 5–6 (see substitutions ther
 - [x] Data desync: three-statement operating inputs lived in component state; Fork liquidity, Red Team liquidity and the IC deck silently used defaults, and edits were lost on navigation. Now `fork.statements` in the store, saved in the existing `fork` jsonb (no migration), read everywhere via `statementAssumptions()`.
 - [x] Pattern 4 gap closed: firm invitations (migration `20261017120000_firm_invites.sql`, email-bound one-time links, `firm_roster()`), firm routes + `FIRM_POLICY`/`canChangeMember`, firm-level audit events, `/team` and `/join/[token]`, firm picker and grouping on `/companies`, safe `?next=` after sign-in. PGlite: 79 checks (email gate mutation-checked). Live RLS tests added.
   - Fixed on the way: a member deleting a colleague's company saw it silently reappear (RLS returns no rows, not an error); now explained.
-  - Open: push the firm_invites migration (awaiting sign-off); invitation emails need SMTP (links are copied by hand for now); with "Confirm email" on, add `/auth/confirm**` to the Supabase redirect allow-list so `?next=` survives sign-up.
+  - Pushed `20261017090000_hardening` + `20261017120000_firm_invites` to `ahujzemhtytbiyuemuyy` (2026-10-17); live `pnpm test:rls` 16 passed, 4 API-route tests skipped (no dev server). Security advisor: trigger-function grants gone; remaining SECURITY DEFINER notices are the intended RPCs (each checks auth.uid()/membership); room_responses no-policy is intentional.
+  - Open: invitation emails need SMTP (links are copied by hand for now); with "Confirm email" on, add `/auth/confirm**` to the Supabase redirect allow-list so `?next=` survives sign-up.
 - [ ] Realtime still unverified with two live browsers.
