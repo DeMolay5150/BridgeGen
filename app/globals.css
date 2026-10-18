@@ -120,3 +120,66 @@
     @apply font-sans;
   }
 }
+
+/* Long-form documents rendered from Markdown (/white-paper). */
+@layer components {
+  .paper-prose {
+    @apply text-[15px] leading-7 text-slate-300;
+  }
+  .paper-prose > * + * {
+    @apply mt-4;
+  }
+  .paper-prose h2 {
+    @apply mt-14 scroll-mt-20 border-t border-border pt-8 font-heading text-xl font-semibold tracking-tight text-white;
+  }
+  .paper-prose h3 {
+    @apply mt-8 scroll-mt-20 font-heading text-base font-semibold text-white;
+  }
+  .paper-prose p:first-child {
+    @apply text-base text-white;
+  }
+  .paper-prose strong {
+    @apply font-semibold text-white;
+  }
+  .paper-prose a {
+    @apply text-metric underline decoration-metric/40 underline-offset-2 hover:decoration-metric;
+  }
+  .paper-prose ul,
+  .paper-prose ol {
+    @apply grid gap-1.5 pl-5;
+  }
+  .paper-prose ul {
+    @apply list-disc marker:text-slate-600;
+  }
+  .paper-prose ol {
+    @apply list-decimal marker:font-mono marker:text-slate-500;
+  }
+  .paper-prose hr {
+    @apply my-10 border-border;
+  }
+  /* The rule already divides; don't draw the heading's border as well. */
+  .paper-prose hr + h2 {
+    @apply mt-0 border-t-0 pt-0;
+  }
+  .paper-prose code {
+    @apply rounded bg-card px-1 py-0.5 font-mono text-[0.85em] text-slate-200;
+  }
+  .paper-prose pre {
+    @apply overflow-x-auto rounded-lg border border-border bg-card p-4 text-[13px] leading-6;
+  }
+  .paper-prose pre code {
+    @apply bg-transparent p-0;
+  }
+  .paper-table {
+    @apply overflow-x-auto rounded-lg border border-border;
+  }
+  .paper-table table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .paper-table th {
+    @apply bg-card px-3 py-2 font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+  .paper-table td {
+    @apply border-t border-border px-3 py-2 align-top;
+  }
+}

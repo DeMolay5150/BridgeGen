@@ -26,6 +26,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "lucide-react": "^1.55.0",
+    "marked": "18.0.14",
     "next": "16.4.0",
     "pptxgenjs": "4.0.1",
     "react": "19.3.0",

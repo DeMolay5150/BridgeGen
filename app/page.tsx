@@ -41,6 +41,9 @@ export default function Home() {
           <Button size="lg" variant="ghost" nativeButton={false} render={<Link href="/walkthrough" />}>
             Watch the 3-minute walkthrough
           </Button>
+          <Button size="lg" variant="ghost" nativeButton={false} render={<Link href="/white-paper" />}>
+            Read the white paper
+          </Button>
         </div>
       </div>
     </main>

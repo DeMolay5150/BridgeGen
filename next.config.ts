@@ -19,6 +19,8 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   /* config options here */
   poweredByHeader: false,
+  // /white-paper reads its Markdown source from disk.
+  outputFileTracingIncludes: { "/white-paper": ["./docs/white-paper.md"] },
   headers: async () => [{ source: "/:path*", headers: SECURITY_HEADERS }],
   cacheComponents: true,
   partialPrefetching: true,
