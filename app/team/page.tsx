@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { TeamSettings } from "@/components/firm/team-settings";
 
@@ -13,7 +14,10 @@ export default function TeamPage() {
         <p className="font-mono text-xs uppercase tracking-widest text-metric">Team</p>
         <h1 className="font-heading text-2xl font-semibold tracking-tight text-white md:text-3xl">Firm &amp; colleagues</h1>
       </header>
-      <TeamSettings />
+      {/* Reads ?firm= from the URL, which is only known at request time. */}
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+        <TeamSettings />
+      </Suspense>
     </main>
   );
 }

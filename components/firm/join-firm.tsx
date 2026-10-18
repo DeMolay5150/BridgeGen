@@ -7,7 +7,7 @@ import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isSupabaseConfigured } from "@/lib/env";
-import { ROLE_LABELS, type InvitePreview } from "@/lib/firms/schema";
+import { roleWithArticle, type InvitePreview } from "@/lib/firms/schema";
 import { acceptInvite, previewInvite, type ApiResult } from "@/lib/firms/use-firms-api";
 import { useSessionStore } from "@/lib/session/store";
 import { getBrowserClient } from "@/lib/supabase/client";
@@ -102,7 +102,7 @@ export function JoinFirm({ token }: { token: string }) {
     const result = await acceptInvite(token);
     setBusy(false);
     if (!result.ok) return setError(result.error);
-    router.push("/team");
+    router.push(`/team?firm=${result.data.firmId}`);
   };
 
   return (
@@ -113,7 +113,7 @@ export function JoinFirm({ token }: { token: string }) {
           Join {invite.firmName}
         </CardTitle>
         <CardDescription>
-          You&apos;ll join as {invite.role === "admin" ? "an" : "a"} {ROLE_LABELS[invite.role].toLowerCase()} and can open and edit the firm&apos;s
+          You&apos;ll join as {roleWithArticle(invite.role)} and can open and edit the firm&apos;s
           client companies{invite.role === "admin" ? ", and invite and manage colleagues" : ""}.
         </CardDescription>
       </CardHeader>

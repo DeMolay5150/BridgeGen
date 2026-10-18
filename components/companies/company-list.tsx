@@ -109,7 +109,8 @@ export function CompanyList() {
   const ready = useSessionStore((s) => s.ready);
   const activeId = useSimulatorStore((s) => s.companyId);
   const [companies, setCompanies] = useState<CompanySummary[] | null>(null);
-  const [firms, setFirms] = useState<FirmOption[]>([]);
+  // Null until loaded, so the list never renders ungrouped and then jumps.
+  const [firms, setFirms] = useState<FirmOption[] | null>(null);
   const [chosenFirm, setChosenFirm] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -165,8 +166,9 @@ export function CompanyList() {
   }
 
   const supabase = () => getBrowserClient()!;
-  const multiFirm = firms.length > 1;
-  const targetFirm = firms.find((f) => f.id === chosenFirm)?.id ?? firms[0]?.id ?? null;
+  const firmList = firms ?? [];
+  const multiFirm = firmList.length > 1;
+  const targetFirm = firmList.find((f) => f.id === chosenFirm)?.id ?? firmList[0]?.id ?? null;
 
   const open = async (id: string) => {
     const { data, error: openError } = await supabase()
@@ -237,7 +239,7 @@ export function CompanyList() {
               <div className="grid gap-1.5">
                 <Label htmlFor={firmSelectId}>Firm</Label>
                 <Select
-                  items={firms.map((f) => ({ value: f.id, label: f.name }))}
+                  items={firmList.map((f) => ({ value: f.id, label: f.name }))}
                   value={targetFirm}
                   onValueChange={(id) => id && setChosenFirm(id)}
                 >
@@ -245,7 +247,7 @@ export function CompanyList() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {firms.map((f) => (
+                    {firmList.map((f) => (
                       <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -277,12 +279,12 @@ export function CompanyList() {
             </Button>
           </div>
         </div>
-        {companies === null ? (
+        {companies === null || firms === null ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : companies.length === 0 ? (
           <p className="text-sm text-muted-foreground">No companies yet. Create your first one above.</p>
         ) : (
-          (multiFirm ? firms.map((f) => ({ firm: f, items: companies.filter((c) => c.firm_id === f.id) })) : [{ firm: null, items: companies }])
+          (multiFirm ? firmList.map((f) => ({ firm: f, items: companies.filter((c) => c.firm_id === f.id) })) : [{ firm: null, items: companies }])
             .filter((group) => group.items.length > 0)
             .map((group) => (
               <div key={group.firm?.id ?? "all"} className="grid gap-2">

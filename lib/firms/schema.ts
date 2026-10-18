@@ -24,6 +24,9 @@ export const FIRM_INVITE_DAYS = 7;
 
 export const ROLE_LABELS: Record<FirmRole, string> = { owner: "Owner", admin: "Admin", member: "Member" };
 
+/** "an owner", "an admin", "a member". */
+export const roleWithArticle = (role: FirmRole) => `${role === "member" ? "a" : "an"} ${role}`;
+
 /** A firm the signed-in advisor belongs to. */
 export interface FirmSummary {
   id: string;

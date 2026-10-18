@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Check, Copy, LogOut, Pencil, Plus, Send, Trash2, UserMinus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { canChangeMember, decideFirm, invitableRoles, type FirmRole } from "@/lib/authz/policy";
 import { isSupabaseConfigured } from "@/lib/env";
-import { FIRM_INVITE_DAYS, ROLE_LABELS, type FirmDetail, type FirmMember } from "@/lib/firms/schema";
+import { FIRM_INVITE_DAYS, ROLE_LABELS, roleWithArticle, type FirmDetail, type FirmMember } from "@/lib/firms/schema";
 import {
   changeRole,
   createFirm,
@@ -275,7 +276,8 @@ export function TeamSettings() {
   const user = useSessionStore((s) => s.user);
   const ready = useSessionStore((s) => s.ready);
   const { firms, error: firmsError, refresh: refreshFirms } = useFirms(!!user);
-  const [chosen, setChosen] = useState<string | null>(null);
+  // ?firm= opens a specific firm, e.g. the one just joined from an invitation.
+  const [chosen, setChosen] = useState<string | null>(useSearchParams().get("firm"));
   // Fall back to the first firm when nothing is chosen or the chosen one was just left.
   const selected = firms?.find((f) => f.id === chosen)?.id ?? firms?.[0]?.id ?? null;
   const { detail, error: detailError, refresh: refreshDetail } = useFirm(selected);
@@ -338,7 +340,7 @@ export function TeamSettings() {
             <CardHeader>
               <FirmName key={detail.firm.id} detail={detail} onRenamed={(name) => run(() => renameFirm(detail.firm.id, name))} />
               <CardDescription>
-                You&apos;re {detail.firm.role === "admin" ? "an" : "a"} {ROLE_LABELS[detail.firm.role].toLowerCase()}. Everyone here can open and edit
+                You&apos;re {roleWithArticle(detail.firm.role)}. Everyone here can open and edit
                 the firm&apos;s companies; owners and admins manage people. Stakeholders&apos; Decision Room answers stay private from every role.
               </CardDescription>
             </CardHeader>
