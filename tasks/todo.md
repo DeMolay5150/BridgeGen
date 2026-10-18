@@ -100,7 +100,7 @@ Substitutions (same pattern, fewer moving parts; each swappable later):
 - [x] Task 6.6: Decision Room presence, live cursors and scenario sync over Supabase Realtime private channels
   - Verified with a fake channel (16 tests, echo-suppression mutation-checked) and PGlite RLS; not yet end-to-end with two live browsers (needs the firms + realtime migrations pushed and two advisor accounts)
 - [x] Migrations firms / audit_log / realtime_rooms applied to `ahujzemhtytbiyuemuyy` (2026-10-14); live `pnpm test:rls` 12 passed, 4 API-route tests skipped (dev server not started)
-- Open (dashboard): disable Realtime "Allow public access". Probed 2026-10-17: an anonymous client still joins public channels (the app only uses private, firm-only channels, so no company data is exposed, but the project can be used as an open relay)
+- Open (Supabase support): Realtime "Allow public access" is off in the dashboard but not enforced. See "Supabase support case" under Open items before launch.
 - Blocked: leaked-password protection (HaveIBeenPwned) needs the Supabase Pro plan; the BridgeGen org is on Free (checked 2026-10-17)
 
 ## Phase 7: Client delivery (presentation mode, IC deck, liquidity alerts, walkthrough)
@@ -133,3 +133,23 @@ All ten patterns were already integrated in Phases 5–6 (see substitutions ther
 - [x] Security headers on every response (`next.config.ts`): frame-ancestors/X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, base-uri, object-src; X-Powered-By off; HSTS from Vercel
 - [x] Final verification on https://www.bridgegen.io at `8e93f45`: all routes 200, API refuses outsiders, `pnpm test:rls` with API routes 20/20, `pnpm test:e2e` 18/18, walkthrough streams from Storage
 - Not covered: a real confirmation email end to end (needs SMTP + an inbox)
+
+## Open items before launch (roadmap closed 2026-10-17)
+Phases 1–9 are done and live on https://www.bridgegen.io. What remains needs an outside service, a plan upgrade or a decision; none of it blocks the demo.
+
+### Supabase support case: Realtime "Allow public access" not enforced
+- Project `ahujzemhtytbiyuemuyy` (org on Free). "Allow public access" shows **off** under Project Settings → Realtime, and stays off after a reload (2026-10-17).
+- Expected: a public (non-private) channel join is rejected with Realtime error `PrivateOnly` ("The connection was rejected because this project only allows private channels").
+- Actual: an anonymous client (publishable key, no session) gets `SUBSCRIBED` on a public channel, and a broadcast between two such clients is delivered (open relay). Re-probed 11+ times over two sessions.
+- Logs: the Realtime tenant was terminated at 2026-10-18 04:19:19 UTC (no connected users) and re-initialised at 06:24:31 UTC; the probe two seconds later still joined the public channel, and no `PrivateOnly` rejection was logged. So it is not a stale cache.
+- Unaffected: private `company:<id>` channels refuse anonymous joins ("Unauthorized: You do not have permissions to read from this Channel topic"), enforced by RLS on `realtime.messages`. No company data is exposed; the risk is quota abuse.
+- Re-check after Supabase responds: `node realtime-relay-probe.mjs` (session scratchpad) should print `BLOCKED` / `CHANNEL_ERROR: PrivateOnly` for the public channel, and still `Unauthorized` for the private one.
+
+### Needs an external service or plan
+- [ ] Custom SMTP; then turn "Confirm email" back on and send invitation emails (links are copied by hand today); verify a real confirmation email end to end
+- [ ] Leaked-password protection (HaveIBeenPwned): needs the Supabase Pro plan
+- [ ] Billing and plan limits (Stripe), real trial mechanics, `NEXT_PUBLIC_SALES_CONTACT_URL` for sales CTAs
+
+### Needs a decision
+- [ ] Walkthrough voice-over audio
+- [ ] Remotion company licence (required for organisations over three people)
