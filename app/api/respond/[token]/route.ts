@@ -1,5 +1,6 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { recordAudit } from "@/lib/audit/server";
+import { clientIp, overLimit, type LimitKind } from "@/lib/ratelimit/server";
 import { EMPTY_RESPONSE } from "@/lib/room/response";
 import { responseBodySchema, stakeholderSchema, tokenSchema } from "@/lib/room/schema";
 import { inviteForToken, json, notFound, readBody } from "@/lib/room/server";
@@ -19,8 +20,24 @@ async function resolve(ctx: RouteContext<"/api/respond/[token]">) {
     : null;
 }
 
+/** A 429 when any of the given budgets is spent; checked before any database read. */
+async function limited(checks: [LimitKind, string][]) {
+  for (const [kind, id] of checks) {
+    const retryAfter = await overLimit(kind, id);
+    if (retryAfter !== null) {
+      return NextResponse.json(
+        { error: "Too many requests. Try again shortly." },
+        { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(retryAfter) } },
+      );
+    }
+  }
+  return null;
+}
+
 /** What the invited stakeholder sees: who they are, whose answers they predict, and only their own answers. */
-export async function GET(_request: NextRequest, ctx: RouteContext<"/api/respond/[token]">) {
+export async function GET(request: NextRequest, ctx: RouteContext<"/api/respond/[token]">) {
+  const blocked = await limited([["respond:get:ip", clientIp(request)]]);
+  if (blocked) return blocked;
   const invite = await resolve(ctx);
   if (!invite) return notFound();
 
@@ -51,6 +68,13 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/respond
 
 /** Saves the invited stakeholder's answers. The token is the only credential. */
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/respond/[token]">) {
+  const { token } = await ctx.params;
+  const blocked = await limited([
+    ["respond:post:ip", clientIp(request)],
+    // Keyed by hash so raw tokens never reach Redis.
+    ["respond:post:token", hashToken(token)],
+  ]);
+  if (blocked) return blocked;
   const invite = await resolve(ctx);
   if (!invite) return notFound();
 
