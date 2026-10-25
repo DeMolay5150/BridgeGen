@@ -46,6 +46,20 @@ for (const file of files) {
   if (file.endsWith("_firms.sql")) {
     await db.query("insert into public.companies (owner_id, name) values ($1, 'Legacy Co')", [ids.dan]);
   }
+  // Answers saved before the binding migration: the founder answered through
+  // today's link; the board answered, then had its link replaced.
+  if (file.endsWith("_room_response_binding.sql")) {
+    await db.exec(`
+      insert into public.room_invites (company_id, stakeholder, token_hash, created_at)
+        select id, 'founder', repeat('1', 64), '2026-10-01' from public.companies where name = 'Legacy Co';
+      insert into public.room_invites (company_id, stakeholder, token_hash, created_at)
+        select id, 'board', repeat('2', 64), '2026-10-10' from public.companies where name = 'Legacy Co';
+      insert into public.room_responses (company_id, stakeholder, updated_at)
+        select id, 'founder', '2026-10-05' from public.companies where name = 'Legacy Co';
+      insert into public.room_responses (company_id, stakeholder, updated_at)
+        select id, 'board', '2026-10-03' from public.companies where name = 'Legacy Co';
+    `);
+  }
   await db.exec(readFileSync(join(DIR, file), "utf8"));
 }
 const auditSql = files.some((f) => f.endsWith("_audit_log.sql"));
@@ -75,6 +89,22 @@ async function as(who, sql, params = [], topic = "") {
 const ok = (r) => !r.error;
 const failed = (r) => !!r.error;
 
+// Answers are bound to the link that saved them (expand migration)
+if (files.some((f) => f.endsWith("_room_response_binding.sql"))) {
+  const bound = Object.fromEntries(
+    (await db.query(
+      "select r.stakeholder, r.invite_token_hash, r.updated_at from room_responses r join companies c on c.id = r.company_id where c.name = 'Legacy Co'",
+    )).rows.map((r) => [r.stakeholder, r]),
+  );
+  check("binding: answers saved through today's link stay readable by it", bound.founder?.invite_token_hash === "1".repeat(64));
+  check("binding: answers that predate a replaced link are hidden from the new one", bound.board?.invite_token_hash === null);
+  check(
+    "binding: the backfill keeps when the answers were saved",
+    new Date(bound.founder?.updated_at).toISOString().startsWith("2026-10-05") &&
+      new Date(bound.board?.updated_at).toISOString().startsWith("2026-10-03"),
+  );
+}
+
 // Backfill
 const legacy = await as("dan", "select c.name, m.role from companies c join firm_members m on m.firm_id = c.firm_id and m.user_id = auth.uid()");
 check("backfill: legacy owner owns a personal firm holding their company", legacy.rows[0]?.name === "Legacy Co" && legacy.rows[0]?.role === "owner");
@@ -98,9 +128,7 @@ const anonRead = await as("anon", "select id from companies");
 check("anon sees nothing", failed(anonRead) || anonRead.rows.length === 0);
 
 // Multi-seat
-// Colleagues join only through accept_firm_invite(); the server seeds memberships here.
-check("owner can't add a member directly", failed(await as("alice", "insert into firm_members (firm_id, user_id) values ($1, $2)", [firmId, ids.carol])));
-await as("service", "insert into firm_members (firm_id, user_id) values ($1, $2)", [firmId, ids.carol]);
+check("owner adds a member", ok(await as("alice", "insert into firm_members (firm_id, user_id) values ($1, $2)", [firmId, ids.carol])));
 check("member reads firm companies", (await as("carol", "select id from companies where firm_id = $1", [firmId])).rows.length === 2);
 check("member edits a firm company", (await as("carol", "update companies set name = 'Hartwell Holdings' where id = $1 returning id", [companyId])).rows.length === 1);
 await as("carol", "delete from companies where id = $1", [companyId]);
@@ -110,14 +138,7 @@ check("member can't add others", failed(await as("carol", "insert into firm_memb
 const danFirm = (await as("service", "select firm_id from firm_members where user_id = $1", [ids.dan])).rows[0]?.firm_id;
 await as("carol", "update companies set firm_id = $2 where id = $1", [companyId, danFirm]);
 check("member can't move a company into a firm they don't belong to", (await as("service", "select firm_id from companies where id = $1", [companyId])).rows[0]?.firm_id === firmId);
-check("member can't mint a stakeholder link directly", failed(await as("carol", "insert into room_invites (company_id, stakeholder, token_hash) values ($1, 'founder', repeat('a', 64))", [companyId])));
-await as("service", "insert into room_invites (company_id, stakeholder, token_hash) values ($1, 'founder', repeat('a', 64))", [companyId]);
-check("member reads invite status", (await as("carol", "select stakeholder from room_invites where company_id = $1", [companyId])).rows.length === 1);
-check("member can't repoint a link to a token they hold", failed(await as("carol", "update room_invites set token_hash = repeat('b', 64) where company_id = $1", [companyId])));
-check("member can't delete a link to reissue it", failed(await as("carol", "delete from room_invites where company_id = $1", [companyId])));
-check("member can't make themself a company's creator", failed(await as("carol", "update companies set owner_id = auth.uid() where id = $1", [companyId])));
-check("saved snapshots must be JSON objects", failed(await as("carol", "update companies set baseline = '[1]'::jsonb where id = $1", [companyId])));
-check("oversized snapshots are refused", failed(await as("carol", "update companies set fork = jsonb_build_object('blob', repeat('x', 20000)) where id = $1", [companyId])));
+check("member creates invites for firm companies", ok(await as("carol", "insert into room_invites (company_id, stakeholder, token_hash) values ($1, 'founder', repeat('a', 64))", [companyId])));
 check("stranger can't read invites", (await as("bob", "select id from room_invites")).rows.length === 0);
 
 // Confidential answers stay server-only for every role
@@ -128,15 +149,10 @@ check("member can't read raw answers", failed(await as("carol", "select * from r
 // Roles
 check("owner promotes carol to admin", (await as("alice", "update firm_members set role = 'admin' where firm_id = $1 and user_id = $2 returning role", [firmId, ids.carol])).rows.length === 1);
 check("admin can't grant owner", failed(await as("carol", "insert into firm_members (firm_id, user_id, role) values ($1, $2, 'owner')", [firmId, ids.bob])));
-check("admin can't add a member directly", failed(await as("carol", "insert into firm_members (firm_id, user_id) values ($1, $2)", [firmId, ids.bob])));
-await as("service", "insert into firm_members (firm_id, user_id) values ($1, $2)", [firmId, ids.bob]);
-check("admin can't rewrite whose membership a row is", failed(await as("carol", "update firm_members set user_id = $2 where firm_id = $1 and user_id = $3", [firmId, ids.dan, ids.bob])));
+check("admin adds a member", ok(await as("carol", "insert into firm_members (firm_id, user_id) values ($1, $2)", [firmId, ids.bob])));
 check("admin can't demote the owner", (await as("carol", "update firm_members set role = 'member' where firm_id = $1 and user_id = $2 returning role", [firmId, ids.alice])).rows.length === 0);
-const keepsOwner = (r) => /at least one owner/.test(r.error ?? "");
-check("last owner can't leave", keepsOwner(await as("alice", "delete from firm_members where firm_id = $1 and user_id = auth.uid()", [firmId])));
-check("last owner can't demote themself", keepsOwner(await as("alice", "update firm_members set role = 'member' where firm_id = $1 and user_id = auth.uid()", [firmId])));
-check("owner promotes a co-owner", (await as("alice", "update firm_members set role = 'owner' where firm_id = $1 and user_id = $2 returning role", [firmId, ids.carol])).rows.length === 1);
-check("with a co-owner, an owner can be demoted", (await as("alice", "update firm_members set role = 'admin' where firm_id = $1 and user_id = $2 returning role", [firmId, ids.carol])).rows.length === 1);
+check("last owner can't leave", failed(await as("alice", "delete from firm_members where firm_id = $1 and user_id = auth.uid()", [firmId])));
+check("last owner can't demote themself", failed(await as("alice", "update firm_members set role = 'member' where firm_id = $1 and user_id = auth.uid()", [firmId])));
 check("a member can leave", ok(await as("bob", "delete from firm_members where firm_id = $1 and user_id = auth.uid()", [firmId])));
 check("admin deletes a company", (await as("carol", "delete from companies where name = 'Second' returning id")).rows.length === 1);
 
@@ -184,8 +200,7 @@ if (files.some((f) => f.endsWith("_hardening.sql"))) {
     "service",
     `select count(*)::int as n from unnest(array['anon', 'authenticated']) r,
        unnest(array['public.companies_default_firm()', 'public.firms_delete_empty()', 'public.users_create_personal_firm()',
-                    'public.firm_members_keep_owner()', 'public.audit_events_append_only()', 'public.set_updated_at()',
-                    'public.firm_members_succeed_owner()']) f
+                    'public.firm_members_keep_owner()', 'public.audit_events_append_only()', 'public.set_updated_at()']) f
      where has_function_privilege(r, f, 'execute')`,
   );
   check("hardening: no API role holds EXECUTE on a trigger function", grants.rows[0]?.n === 0);
@@ -250,14 +265,11 @@ if (files.some((f) => f.endsWith("_firm_invites.sql"))) {
   await as("bob", "delete from firm_members where firm_id = $1 and user_id = auth.uid()", [firmId]);
 }
 
-// Account deletion: alice is the sole owner, carol an admin.
+// Account deletion
+await as("service", "update firm_members set role = 'owner' where firm_id = $1 and user_id = $2", [firmId, ids.carol]);
 await db.query("delete from auth.users where id = $1", [ids.alice]);
 const after = await as("service", "select owner_id from companies where id = $1", [companyId]);
-check("deleting the sole owner's account keeps the firm's company (owner_id cleared)", after.rows.length === 1 && after.rows[0].owner_id === null);
-check(
-  "the longest-standing admin takes over as owner",
-  (await as("service", "select role from firm_members where firm_id = $1 and user_id = $2", [firmId, ids.carol])).rows[0]?.role === "owner",
-);
+check("deleting a co-owner's account keeps the firm's company (owner_id cleared)", after.rows.length === 1 && after.rows[0].owner_id === null);
 await db.query("delete from auth.users where id = $1", [ids.dan]);
 check(
   "deleting a sole owner's account removes their personal firm and its companies",

@@ -57,9 +57,9 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/compani
   }
 
   const token = generateToken();
-  // Links are server-issued: signed-in users can't write room_invites, so this
-  // write uses the secret key, after authorize() above. Replacing the hash
-  // invalidates the old link.
+  // Links are server-issued: this write uses the secret key, after authorize()
+  // above (migration 20261025100000_write_hardening revokes signed-in users'
+  // direct writes). Replacing the hash invalidates the old link.
   const { error } = await getAdminClient()
     .from("room_invites")
     .upsert(
