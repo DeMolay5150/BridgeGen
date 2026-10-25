@@ -6,6 +6,8 @@ import { MonitorPlay, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { neutralScenario } from "@/lib/simulator/defaults";
 import { simulate } from "@/lib/simulator/engine";
+import { formatMoney } from "@/lib/simulator/format";
+import { cn } from "@/lib/utils";
 import { FinancialModel } from "@/components/statements/financial-model";
 import { DeckDialog } from "@/components/deck/deck-dialog";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
@@ -56,8 +58,23 @@ export function FlightSimulator() {
         <div className="grid gap-6">
           <BaselinePanel />
           <ScenarioControls />
+          {/* Below lg the results sit under every input; keep the headline in view while levers move. */}
+          <div
+            aria-live="polite"
+            className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-border bg-card/95 px-4 py-3 text-sm shadow-lg backdrop-blur lg:hidden"
+          >
+            <span>
+              Equity value{" "}
+              <span className={cn("font-mono tabular-nums", result.equityValue <= 0 ? "text-critical" : "text-metric")}>
+                {formatMoney(result.equityValue)}
+              </span>
+            </span>
+            <a href="#results" className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+              See all results
+            </a>
+          </div>
         </div>
-        <div className="lg:sticky lg:top-6">
+        <div id="results" className="scroll-mt-6 lg:sticky lg:top-6">
           <ResultsPanel result={result} today={today} baseline={baseline} scenario={scenario} />
         </div>
       </div>

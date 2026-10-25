@@ -4,6 +4,7 @@ import { recordAudit } from "@/lib/audit/server";
 import { allows, authorize, json, loadResponses, notFound, readBody, siteOrigin } from "@/lib/room/server";
 import { generateToken, hashToken } from "@/lib/room/tokens";
 import { STAKEHOLDER_IDS } from "@/lib/simulator/alignment";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { getServerClient } from "@/lib/supabase/server";
 
 /** Invite status per stakeholder: whether a link exists and whether they've submitted. Never answers. */
@@ -56,8 +57,10 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/compani
   }
 
   const token = generateToken();
-  // RLS (firm members only) applies to this write; replacing the hash invalidates the old link.
-  const { error } = await supabase
+  // Links are server-issued: signed-in users can't write room_invites, so this
+  // write uses the secret key, after authorize() above. Replacing the hash
+  // invalidates the old link.
+  const { error } = await getAdminClient()
     .from("room_invites")
     .upsert(
       { company_id: company.id, stakeholder: body.data.stakeholder, token_hash: hashToken(token), created_at: new Date().toISOString() },

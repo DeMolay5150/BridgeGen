@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { moneyDelta, multipleDelta, type KpiDelta } from "@/lib/domain/delta";
 import { SHOCKS, runShock } from "@/lib/redteam/shocks";
 import { scoreScenario } from "@/lib/simulator/alignment";
-import { SCENARIO_RANGES, neutralScenario } from "@/lib/simulator/defaults";
+import { SCENARIO_RANGES, leverageRange, neutralScenario } from "@/lib/simulator/defaults";
 import { COVERAGE_CAUTION, COVERAGE_CRITICAL, simulate } from "@/lib/simulator/engine";
 import { formatMoney, formatMultiple, formatPercent, formatSignedPercent } from "@/lib/simulator/format";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
@@ -176,7 +176,7 @@ export function Presentation() {
               hint="Debt as a multiple of today's earnings"
               value={scenario.leverage}
               display={`${scenario.leverage.toFixed(2)}x`}
-              range={SCENARIO_RANGES.leverage}
+              range={leverageRange(baseline)}
               onChange={(leverage) => setScenario({ leverage })}
             />
             <Lever

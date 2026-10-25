@@ -23,7 +23,7 @@ export function SliderRow({ label, hint, value, range, display, onChange }: Slid
           <span id={labelId} className="text-sm font-medium">
             {label}
           </span>
-          <span className="text-xs text-muted-foreground">{hint}</span>
+          <span className="text-sm text-muted-foreground">{hint}</span>
         </div>
         <span className="shrink-0 font-mono text-sm text-metric tabular-nums">{display}</span>
       </div>

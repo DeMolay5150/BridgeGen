@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const signals = [
-  { label: "Low risk", className: "text-positive bg-positive/10" },
-  { label: "Perception gap", className: "text-caution bg-caution/10" },
-  { label: "$4.2M valuation", className: "text-metric bg-metric/10" },
-  { label: "Critical failure", className: "text-critical bg-critical/10" },
+/** A first-time visitor's path: one place to start, in plain words. */
+const steps = [
+  "Enter today's figures for the company, or keep the demo family business.",
+  "Move one lever, such as borrowing or shares passed to the next generation.",
+  "Read what changes for the founder, the heirs, the board and the lender.",
 ];
 
 export default function Home() {
@@ -21,30 +21,30 @@ export default function Home() {
         <p className="mt-4 text-lg leading-8 text-muted-foreground">
           See the systemic consequences before you make the decision.
         </p>
-        <ul className="mt-8 flex flex-wrap gap-2">
-          {signals.map((signal) => (
-            <li
-              key={signal.label}
-              className={`rounded-md px-2.5 py-1 font-mono text-xs ${signal.className}`}
-            >
-              {signal.label}
+        <ol className="mt-8 grid gap-3">
+          {steps.map((step, index) => (
+            <li key={index} className="flex gap-3 text-base text-foreground/90">
+              <span className="font-mono text-metric">{index + 1}.</span>
+              {step}
             </li>
           ))}
-        </ul>
+        </ol>
         <div className="mt-10 flex flex-wrap gap-3">
-          <Button size="lg" nativeButton={false} render={<Link href="/simulator" />}>
-            Run a simulation
+          <Button size="lg" className="h-11 px-5 text-base" nativeButton={false} render={<Link href="/simulator" />}>
+            Start with the simulator
           </Button>
-          <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/pricing" />}>
-            See pricing
-          </Button>
-          <Button size="lg" variant="ghost" nativeButton={false} render={<Link href="/walkthrough" />}>
+          <Button size="lg" variant="outline" className="h-11 px-5 text-base" nativeButton={false} render={<Link href="/walkthrough" />}>
             Watch the 3-minute walkthrough
           </Button>
-          <Button size="lg" variant="ghost" nativeButton={false} render={<Link href="/white-paper" />}>
-            Read the white paper
-          </Button>
         </div>
+        <p className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+          <Link href="/pricing" className="underline underline-offset-4 hover:text-foreground">
+            Pricing
+          </Link>
+          <Link href="/white-paper" className="underline underline-offset-4 hover:text-foreground">
+            Read the white paper
+          </Link>
+        </p>
       </div>
     </main>
   );

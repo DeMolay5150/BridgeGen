@@ -48,12 +48,14 @@ function Metric({
     <Card size="sm">
       <CardContent className="grid gap-1">
         <div className="-my-1 flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">{label}</span>
-          <ExplainButton subject={label.toLowerCase()} explain={explain} />
+          <span className="text-sm text-muted-foreground">{label}</span>
+          <ExplainButton subject={label.toLowerCase()} explain={explain}>
+            Why?
+          </ExplainButton>
         </div>
         <span className={cn("font-mono text-2xl tabular-nums", VALUE_TONE[tone])}>{value}</span>
         {delta}
-        <span className="text-xs text-muted-foreground">{detail}</span>
+        <span className="text-sm text-muted-foreground">{detail}</span>
       </CardContent>
     </Card>
   );
@@ -166,7 +168,7 @@ export function ResultsPanel({
           explain={() => explainEquity(baseline, scenario)}
         />
         <Metric
-          label={direction < 0 ? "Capital required" : "Dividend recap payout"}
+          label={direction < 0 ? "Capital required" : "Cash paid out (dividend recap)"}
           value={formatMoney(Math.abs(result.netDistribution))}
           detail={
             direction > 0
@@ -181,7 +183,7 @@ export function ResultsPanel({
         <Metric
           label="Interest coverage"
           value={formatMultiple(result.interestCoverage)}
-          detail={`Debt ${formatMultiple(result.debtToEbitda)} EBITDA · ${formatMoney(result.interestExpense)}/yr interest`}
+          detail={`Times profit covers interest. Debt ${formatMultiple(result.debtToEbitda)} EBITDA · ${formatMoney(result.interestExpense)}/yr interest`}
           tone={coverageTone(result.interestCoverage)}
           delta={coverageBadge(result.interestCoverage, today.interestCoverage)}
           explain={() => explainCoverage(baseline, scenario)}
@@ -199,7 +201,7 @@ export function ResultsPanel({
             {result.signals.map((signal) => (
               <li key={signal.id} className={cn("grid gap-0.5 rounded-lg px-3 py-2", SEVERITY_STYLES[signal.severity])}>
                 <span className="text-sm font-medium">{signal.title}</span>
-                <span className="text-xs text-foreground/70">{signal.detail}</span>
+                <span className="text-sm text-foreground/85">{signal.detail}</span>
               </li>
             ))}
           </ul>

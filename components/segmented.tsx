@@ -19,7 +19,7 @@ export function Segmented<T extends string>({
     <ToggleGroup
       aria-labelledby={labelId}
       variant="outline"
-      size="sm"
+      size="default"
       spacing={0}
       value={value === undefined ? [] : [value]}
       // Base UI reports [] when the pressed item is clicked again; keep the current answer.
@@ -29,7 +29,7 @@ export function Segmented<T extends string>({
       }}
     >
       {options.map((option) => (
-        <ToggleGroupItem key={option.value} value={option.value} title={option.title} className="px-3">
+        <ToggleGroupItem key={option.value} value={option.value} title={option.title} className="h-10 px-4 aria-pressed:bg-metric/10 aria-pressed:text-metric">
           {option.label}
         </ToggleGroupItem>
       ))}

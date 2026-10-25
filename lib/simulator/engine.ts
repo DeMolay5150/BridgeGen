@@ -1,5 +1,5 @@
 import { governanceDebtValue } from "../governance/model";
-import { BASELINE_LIMITS, SCENARIO_RANGES, clamp } from "./defaults";
+import { BASELINE_LIMITS, SCENARIO_RANGES, clamp, leverageRange } from "./defaults";
 import { formatMoney, formatMultiple } from "./format";
 import type {
   Baseline,
@@ -30,15 +30,20 @@ function sanitizeBaseline(baseline: Baseline): Baseline {
   };
 }
 
-function sanitizeScenario(scenario: Scenario): Scenario {
+function sanitizeScenario(scenario: Scenario, baseline: Baseline): Scenario {
   return {
-    leverage: clamp(scenario.leverage, SCENARIO_RANGES.leverage),
+    leverage: clamp(scenario.leverage, leverageRange(baseline)),
     equityTransfer: clamp(scenario.equityTransfer, SCENARIO_RANGES.equityTransfer),
     multipleShock: clamp(scenario.multipleShock, SCENARIO_RANGES.multipleShock),
     outsideCeo: scenario.outsideCeo === true,
     ceoCost: clamp(scenario.ceoCost, SCENARIO_RANGES.ceoCost),
     ceoUplift: clamp(scenario.ceoUplift, SCENARIO_RANGES.ceoUplift),
   };
+}
+
+/** An outside CEO's EBITDA gain: an improvement narrows losses rather than scaling them up. */
+export function ceoImprovement(ebitda: number, uplift: number): number {
+  return Math.abs(ebitda) * uplift;
 }
 
 function splitBy(ownership: Holders, amount: number): Holders {
@@ -60,11 +65,11 @@ export function simulate(
   governanceScore = 0,
 ): SimulationResult {
   const baseline = sanitizeBaseline(rawBaseline);
-  const scenario = sanitizeScenario(rawScenario);
+  const scenario = sanitizeScenario(rawScenario, baseline);
   const governance = clamp(governanceScore, { min: 0, max: 100 });
 
   const adjustedEbitda = scenario.outsideCeo
-    ? baseline.ebitda * (1 + scenario.ceoUplift) - scenario.ceoCost
+    ? baseline.ebitda + ceoImprovement(baseline.ebitda, scenario.ceoUplift) - scenario.ceoCost
     : baseline.ebitda;
   const ebitdaMargin = baseline.revenue > 0 ? adjustedEbitda / baseline.revenue : null;
 

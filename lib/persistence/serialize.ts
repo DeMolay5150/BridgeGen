@@ -79,10 +79,40 @@ const forkSchema = z
 const stakeholderPrioritiesSchema = z.partialRecord(z.enum(PRIORITY_KEYS as [string, ...string[]]), finite);
 export const prioritiesSchema = z.partialRecord(z.enum(STAKEHOLDER_IDS as [string, ...string[]]), stakeholderPrioritiesSchema);
 
-/** Parses one saved section; invalid data falls back to an empty patch (i.e. the defaults). */
-function section<T extends object>(schema: z.ZodType<T>, value: unknown): Partial<T> {
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Keeps every valid field of `value`, recursing into objects and records, so
+ * one bad field falls back to its default alone instead of taking its whole
+ * section (and the next autosave) with it. Undefined means nothing usable.
+ */
+function salvage(schema: z.ZodType, value: unknown): unknown {
+  const inner = schema instanceof z.ZodOptional ? (schema.unwrap() as z.ZodType) : schema;
+  if (isPlainObject(value) && (inner instanceof z.ZodObject || inner instanceof z.ZodRecord)) {
+    const out: Record<string, unknown> = {};
+    for (const [key, raw] of Object.entries(value)) {
+      const field =
+        inner instanceof z.ZodObject
+          ? (inner.shape as Record<string, z.ZodType>)[key]
+          : (inner.keyType as z.ZodType).safeParse(key).success
+            ? (inner.valueType as z.ZodType)
+            : undefined;
+      const kept = field ? salvage(field, raw) : undefined;
+      if (kept !== undefined) out[key] = kept;
+    }
+    // Objects with required fields are kept whole or not at all.
+    const whole = schema.safeParse(out);
+    return whole.success ? whole.data : undefined;
+  }
   const parsed = schema.safeParse(value);
-  return parsed.success ? parsed.data : {};
+  return parsed.success ? parsed.data : undefined;
+}
+
+/** Parses one saved section; invalid fields fall back to their defaults one by one. */
+function section<T extends object>(schema: z.ZodType<T>, value: unknown): Partial<T> {
+  const kept = salvage(schema, value);
+  return isPlainObject(kept) ? (kept as Partial<T>) : {};
 }
 
 /** The demo company: the starting point for the public demo and for new companies. */

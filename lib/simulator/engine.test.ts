@@ -252,3 +252,29 @@ describe("format", () => {
     expect(formatSignedPercent(0.0000001)).toBe("0%");
   });
 });
+
+describe("simulate: edge cases from the October sweep", () => {
+  it("keeps 'no change' neutral for a company already above the 6x slider ceiling", () => {
+    const hot = { ...base, ebitda: 1, existingDebt: 10 };
+    const r = simulate(hot, neutralScenario(hot));
+    expect(r.totalDebt).toBeCloseTo(10);
+    expect(r.netDistribution).toBeCloseTo(0);
+    expect(r.debtToEbitda).toBeCloseTo(10);
+    // Above the company's own leverage, the usual ceiling still caps the slider.
+    expect(simulate(hot, { ...neutralScenario(hot), leverage: 50 }).totalDebt).toBeCloseTo(10);
+    expect(simulate(base, { ...neutral, leverage: 50 }).totalDebt).toBeCloseTo(6 * base.ebitda);
+  });
+
+  it("an outside CEO's uplift narrows losses instead of deepening them", () => {
+    const loss = run({ outsideCeo: true, ceoUplift: 0.2, ceoCost: 0 }, { ebitda: -2, existingDebt: 0 });
+    expect(loss.adjustedEbitda).toBeCloseTo(-1.6);
+    const profit = run({ outsideCeo: true, ceoUplift: 0.2, ceoCost: 0 });
+    expect(profit.adjustedEbitda).toBeCloseTo(14.4);
+  });
+
+  it("treats a NaN baseline value as zero, not as the most extreme loss", () => {
+    const r = run({}, { ebitda: Number.NaN });
+    expect(r.adjustedEbitda).toBe(0);
+    expect(r.enterpriseValue).toBe(0);
+  });
+});

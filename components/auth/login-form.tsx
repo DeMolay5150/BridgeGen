@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,12 +42,16 @@ export function LoginForm() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Accounts aren&apos;t set up yet</CardTitle>
+          <CardTitle>Sign-in isn&apos;t available in this demo</CardTitle>
           <CardDescription>
-            This deployment runs as the public demo. Add the Supabase keys to .env.local to enable
-            sign-in and saved companies.
+            Everything works without an account. Your changes just aren&apos;t saved between visits.
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <Button nativeButton={false} render={<Link href="/simulator" />}>
+            Open the simulator
+          </Button>
+        </CardContent>
       </Card>
     );
   }

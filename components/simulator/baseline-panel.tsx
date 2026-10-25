@@ -18,8 +18,8 @@ interface FieldSpec {
 
 const FIELDS: FieldSpec[] = [
   { key: "revenue", label: "Revenue", unit: "$M" },
-  { key: "ebitda", label: "EBITDA", unit: "$M" },
-  { key: "multiple", label: "EBITDA multiple", unit: "x" },
+  { key: "ebitda", label: "EBITDA (operating profit)", unit: "$M" },
+  { key: "multiple", label: "Valuation multiple", unit: "x" },
   { key: "existingDebt", label: "Existing debt", unit: "$M" },
   { key: "interestRate", label: "Interest rate", unit: "%" },
   { key: "founderOwnership", label: "Founder ownership", unit: "%" },
@@ -44,8 +44,9 @@ function BaselineField({ spec }: { spec: FieldSpec }) {
   };
 
   return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
+    // content-end keeps inputs in a row aligned when a neighbouring label wraps.
+    <div className="grid content-end gap-1.5">
+      <Label htmlFor={id} className="text-sm text-muted-foreground">
         {spec.label}
       </Label>
       <div className="relative">
@@ -53,7 +54,7 @@ function BaselineField({ spec }: { spec: FieldSpec }) {
           id={id}
           inputMode="decimal"
           autoComplete="off"
-          className="pr-9 font-mono"
+          className="pr-10 font-mono"
           value={draft ?? toDisplay(value, spec.unit)}
           onFocus={(e) => setDraft(e.currentTarget.value)}
           onChange={(e) => {
@@ -62,7 +63,7 @@ function BaselineField({ spec }: { spec: FieldSpec }) {
           }}
           onBlur={() => setDraft(null)}
         />
-        <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center font-mono text-xs text-muted-foreground">
+        <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center font-mono text-sm text-muted-foreground">
           {spec.unit}
         </span>
       </div>
@@ -94,7 +95,7 @@ export function BaselinePanel() {
       <CardHeader>
         <CardTitle>Company baseline</CardTitle>
         <CardDescription>
-          Today&apos;s figures. Overwrite with the client&apos;s numbers, or paste a block straight from Excel.
+          Today&apos;s figures, in US$ millions. Overwrite with the client&apos;s numbers, or paste a block straight from Excel.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-4" onPaste={onPaste}>

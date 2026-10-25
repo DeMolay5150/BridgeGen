@@ -3,6 +3,7 @@ import { recordAudit } from "@/lib/audit/server";
 import { EMPTY_RESPONSE } from "@/lib/room/response";
 import { responseBodySchema, stakeholderSchema, tokenSchema } from "@/lib/room/schema";
 import { inviteForToken, json, loadResponses, notFound, readBody } from "@/lib/room/server";
+import { hashToken } from "@/lib/room/tokens";
 import { PREDICTION_TARGET } from "@/lib/room/topics";
 import { STAKEHOLDER_LABELS } from "@/lib/simulator/alignment";
 import { getAdminClient } from "@/lib/supabase/admin";
@@ -12,7 +13,9 @@ async function resolve(ctx: RouteContext<"/api/respond/[token]">) {
   if (!tokenSchema.safeParse(token).success) return null;
   const invite = await inviteForToken(token);
   const stakeholder = stakeholderSchema.safeParse(invite?.stakeholder);
-  return invite && stakeholder.success ? { companyId: invite.company_id, stakeholder: stakeholder.data } : null;
+  return invite && stakeholder.success
+    ? { companyId: invite.company_id, stakeholder: stakeholder.data, tokenHash: hashToken(token) }
+    : null;
 }
 
 /** What the invited stakeholder sees: who they are, whose answers they predict, and only their own answers. */
@@ -26,13 +29,21 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/respond
     .eq("id", invite.companyId)
     .maybeSingle<{ name: string }>();
   const responses = await loadResponses(invite.companyId);
+  // Answers saved through a link that has since been replaced stay hidden from the new one.
+  const { data: own } = await getAdminClient()
+    .from("room_responses")
+    .select("invite_token_hash")
+    .eq("company_id", invite.companyId)
+    .eq("stakeholder", invite.stakeholder)
+    .maybeSingle<{ invite_token_hash: string | null }>();
+  const response = own?.invite_token_hash === invite.tokenHash ? responses[invite.stakeholder] : undefined;
 
   return json({
     companyName: company?.name ?? "",
     stakeholder: invite.stakeholder,
     stakeholderLabel: STAKEHOLDER_LABELS[invite.stakeholder],
     targetLabel: STAKEHOLDER_LABELS[PREDICTION_TARGET[invite.stakeholder]],
-    response: responses[invite.stakeholder] ?? EMPTY_RESPONSE,
+    response: response ?? EMPTY_RESPONSE,
   });
 }
 
@@ -47,7 +58,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/respond
   const { error } = await getAdminClient()
     .from("room_responses")
     .upsert(
-      { company_id: invite.companyId, stakeholder: invite.stakeholder, ...body.data },
+      { company_id: invite.companyId, stakeholder: invite.stakeholder, invite_token_hash: invite.tokenHash, ...body.data },
       { onConflict: "company_id,stakeholder" },
     );
   if (error) return json({ error: "Couldn't save your answers" }, 500);

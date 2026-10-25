@@ -5,7 +5,7 @@ import { SliderRow } from "@/components/slider-row";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { SCENARIO_RANGES } from "@/lib/simulator/defaults";
+import { SCENARIO_RANGES, leverageRange } from "@/lib/simulator/defaults";
 import {
   formatMoney,
   formatMultiple,
@@ -16,6 +16,7 @@ import { useSimulatorStore } from "@/lib/simulator/store";
 
 export function ScenarioControls() {
   const switchId = useId();
+  const baseline = useSimulatorStore((s) => s.baseline);
   const scenario = useSimulatorStore((s) => s.scenario);
   const setScenario = useSimulatorStore((s) => s.setScenario);
 
@@ -28,9 +29,9 @@ export function ScenarioControls() {
       <CardContent className="grid gap-7">
         <SliderRow
           label="Debt leverage"
-          hint="Total debt as a multiple of today's EBITDA"
+          hint="Total debt, as years of today's operating profit (EBITDA)"
           value={scenario.leverage}
-          range={SCENARIO_RANGES.leverage}
+          range={leverageRange(baseline)}
           display={formatMultiple(scenario.leverage)}
           onChange={(leverage) => setScenario({ leverage })}
         />
@@ -44,7 +45,7 @@ export function ScenarioControls() {
         />
         <SliderRow
           label="Valuation sensitivity"
-          hint="Market shift in the EBITDA multiple"
+          hint="How much buyers' pricing for businesses like this rises or falls"
           value={scenario.multipleShock}
           range={SCENARIO_RANGES.multipleShock}
           display={formatSignedPercent(scenario.multipleShock)}
@@ -55,7 +56,7 @@ export function ScenarioControls() {
           <div className="flex items-center justify-between gap-4">
             <Label htmlFor={switchId} className="grid gap-0.5">
               <span>Outside CEO</span>
-              <span className="text-xs font-normal text-muted-foreground">
+              <span className="text-sm font-normal text-muted-foreground">
                 Hire professional management instead of a family successor
               </span>
             </Label>

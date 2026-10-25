@@ -32,9 +32,9 @@ export function ExplainButton({
         render={
           <Button
             variant="ghost"
-            size={children ? "sm" : "icon-sm"}
+            size={children ? "sm" : "icon"}
             aria-label={children ? undefined : `Explain ${subject}`}
-            className="shrink-0 text-muted-foreground hover:text-foreground"
+            className="shrink-0 text-metric hover:text-foreground"
           />
         }
       >

@@ -1,5 +1,5 @@
-import { BASELINE_LIMITS, SCENARIO_RANGES, clamp, neutralScenario } from "../simulator/defaults";
-import { COVERAGE_CAUTION, COVERAGE_CRITICAL, simulate } from "../simulator/engine";
+import { BASELINE_LIMITS, SCENARIO_RANGES, clamp, leverageRange, neutralScenario } from "../simulator/defaults";
+import { COVERAGE_CAUTION, COVERAGE_CRITICAL, ceoImprovement, simulate } from "../simulator/engine";
 import { formatMoney, formatMultiple, formatPercent, formatSignedPercent } from "../simulator/format";
 import type { Baseline, Holders, Scenario, SimulationResult } from "../simulator/types";
 import { attribute } from "./attribution";
@@ -32,7 +32,7 @@ function holderSplit(ownership: Holders, amounts: Holders, withShare = true): st
 function debtStep(baseline: Baseline, scenario: Scenario, r: SimulationResult): ExplanationStep {
   const ebitda = clamp(baseline.ebitda, BASELINE_LIMITS.ebitda);
   return ebitda > 0
-    ? { text: `Debt is ${formatMultiple(clamp(scenario.leverage, SCENARIO_RANGES.leverage))} × ${formatMoney(ebitda)} EBITDA = ${formatMoney(r.totalDebt)}.` }
+    ? { text: `Debt is ${formatMultiple(clamp(scenario.leverage, leverageRange(baseline)))} × ${formatMoney(ebitda)} EBITDA = ${formatMoney(r.totalDebt)}.` }
     : { text: `Debt stays at ${formatMoney(r.totalDebt)}: a loss-making company can't borrow more.`, tone: "caution" };
 }
 
@@ -47,7 +47,10 @@ export function explainEnterpriseValue(baseline: Baseline, scenario: Scenario): 
     const uplift = clamp(scenario.ceoUplift, SCENARIO_RANGES.ceoUplift);
     const cost = clamp(scenario.ceoCost, SCENARIO_RANGES.ceoCost);
     steps.push({
-      text: `An outside CEO lifts EBITDA ${formatPercent(uplift)} but costs ${formatMoney(cost)} a year, so adjusted EBITDA is ${formatMoney(r.adjustedEbitda)}.`,
+      text:
+        ebitda < 0
+          ? `An outside CEO narrows losses by ${formatPercent(uplift)} (${formatMoney(ceoImprovement(ebitda, uplift))}) but costs ${formatMoney(cost)} a year, so adjusted EBITDA is ${formatMoney(r.adjustedEbitda)}.`
+          : `An outside CEO lifts EBITDA ${formatPercent(uplift)} but costs ${formatMoney(cost)} a year, so adjusted EBITDA is ${formatMoney(r.adjustedEbitda)}.`,
     });
   }
   steps.push({

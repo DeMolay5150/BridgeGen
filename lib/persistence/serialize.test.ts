@@ -58,6 +58,28 @@ describe("company serialization", () => {
     });
     expect(s).toEqual(defaultSnapshot());
   });
+
+  it("drops one bad field without wiping the rest of its section", () => {
+    // NaN is saved as null in JSON; it must not reset the company to the demo figures.
+    const s = fromRow({
+      baseline: { revenue: 75, ebitda: null, founderOwnership: 0.6 },
+      scenario: { equityTransfer: 0.4, ceoCost: "x" },
+      governance: { votingRules: "yes", boardSeatsFilled: Number.NaN },
+      fork: { a: { source: "dividend-recap" }, b: { source: "current", fixGovernance: true }, statements: { taxRate: 0.3, capex: null } },
+      priorities: { founder: { control: 2, value: Infinity }, stranger: { control: 1 } },
+    });
+    const d = defaultSnapshot();
+    expect(s.baseline).toEqual({ ...d.baseline, revenue: 75, founderOwnership: 0.6 });
+    expect(s.scenario.equityTransfer).toBe(0.4);
+    expect(s.scenario.ceoCost).toBe(d.scenario.ceoCost);
+    expect(s.governance).toEqual({ ...d.governance, votingRules: "yes" });
+    // A branch missing a required field is dropped whole, never half-kept.
+    expect(s.fork.a).toEqual(d.fork.a);
+    expect(s.fork.b).toEqual({ source: "current", fixGovernance: true });
+    expect(s.fork.statements).toEqual({ ...d.fork.statements, taxRate: 0.3 });
+    expect(s.priorities.founder).toEqual({ ...DEFAULT_PRIORITIES.founder, control: 2 });
+    expect(Object.keys(s.priorities)).not.toContain("stranger");
+  });
 });
 
 describe("store: saved companies", () => {

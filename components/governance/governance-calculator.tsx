@@ -123,7 +123,7 @@ function QuestionRow({ question }: { question: Question }) {
         <span id={labelId} className="text-sm font-medium">
           {question.label}
         </span>
-        <span className="text-xs text-muted-foreground">{question.hint}</span>
+        <span className="text-sm text-muted-foreground">{question.hint}</span>
       </div>
       {question.kind === "practice" && (
         <Segmented
@@ -224,10 +224,11 @@ export function GovernanceCalculator() {
                   {Math.round(governance.score)}
                 </span>
                 <span className="font-mono text-lg text-muted-foreground">/100</span>
+                <span className="ml-2 text-sm text-muted-foreground">lower is better</span>
               </div>
               <div className="grid gap-1">
                 <span className="font-mono text-2xl text-metric tabular-nums">{formatMoney(atRisk)}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   Value at risk: up to a {formatPercent(MAX_GOVERNANCE_DISCOUNT)} discount on the{" "}
                   <Link href="/simulator" className="text-foreground underline underline-offset-4">
                     simulator&apos;s
