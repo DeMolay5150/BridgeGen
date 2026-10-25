@@ -50,9 +50,11 @@ export function project(
   ): YearPoint => {
     const enterpriseValue = Math.max(values.ebitda, 0) * effectiveMultiple;
     const equityValue = enterpriseValue - values.debt;
+    // Limited liability, as in simulate(): underwater equity is worth nothing, not a debt the owners repay.
+    const ownersEquity = Math.max(equityValue, 0);
     const disruptionProbability = 1 - (1 - annualRisk) ** year;
     const expectedGovernanceLoss = enterpriseValue * MAX_GOVERNANCE_DISCOUNT * disruptionProbability;
-    const shareholderValue = equityValue - expectedGovernanceLoss + values.cumulativeCash;
+    const shareholderValue = ownersEquity - expectedGovernanceLoss + values.cumulativeCash;
     const interestCoverage = values.interest > 0 ? values.ebitda / values.interest : null;
     return {
       year,
@@ -94,7 +96,8 @@ export function project(
     // Losses don't compound with growth; a loss-making business stays flat.
     const ebitda = prev.ebitda > 0 ? prev.ebitda * (1 + growth) : prev.ebitda;
     const interest = prev.debt * rate;
-    const freeCashFlow = ebitda * conversion - interest;
+    // Cash conversion scales profits; a loss is a cash loss in full.
+    const freeCashFlow = (ebitda > 0 ? ebitda * conversion : ebitda) - interest;
     const debtPaydown = freeCashFlow >= 0 ? Math.min(freeCashFlow, prev.debt) : 0;
     const dividends = freeCashFlow >= 0 ? freeCashFlow - debtPaydown : 0;
     // A cash shortfall is borrowed.

@@ -177,3 +177,20 @@ describe("project: hostile inputs", () => {
     }
   });
 });
+
+describe("project: edge cases from the October architecture review", () => {
+  it("treats a loss as a cash loss in full, not scaled down by cash conversion", () => {
+    const loss = project({ ...base, ebitda: -10, existingDebt: 0 }, neutralScenario({ ...base, ebitda: -10 }), 0, {
+      ...DEFAULT_ASSUMPTIONS,
+      cashConversion: 0.1,
+    });
+    expect(loss[1].freeCashFlow).toBeCloseTo(-10);
+  });
+
+  it("never lets underwater equity reduce what the owners already took out (limited liability)", () => {
+    const points = project({ ...base, multiple: 3 }, { ...neutral, leverage: 5 }, 0, DEFAULT_ASSUMPTIONS);
+    const day0 = points[0];
+    expect(day0.equityValue).toBeLessThan(0);
+    expect(day0.shareholderValue).toBeCloseTo(day0.cumulativeCash);
+  });
+});

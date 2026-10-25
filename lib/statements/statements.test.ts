@@ -137,3 +137,33 @@ describe("spreadsheet clipboard", () => {
     expect(parseBaselinePaste("")).toBeNull();
   });
 });
+
+describe("statements: edge cases from the October architecture review", () => {
+  it("grows EBITDA directly when no revenue is on record, instead of collapsing it to zero", () => {
+    const m = buildStatements({ ...base, revenue: 0 }, neutral, assumptions);
+    expect(m.years[1].ebitda).toBeCloseTo(12 * 1.04);
+    expect(m.years[10].enterpriseValue).toBeGreaterThan(m.years[0].enterpriseValue);
+  });
+
+  it("bounds path growth overrides like the base assumption", () => {
+    const wild = buildStatements(base, neutral, assumptions, { growth: Array(10).fill(0.9) });
+    const capped = buildStatements(base, neutral, assumptions, { growth: Array(10).fill(0.5) });
+    expect(wild.years[10].revenue).toBeCloseTo(capped.years[10].revenue);
+  });
+
+  it("scores a path that returns nothing as a −100% IRR, not a missing one", () => {
+    // Losses every year (no dividends) and a worthless exit: nothing ever comes back.
+    const collapse = buildStatements(base, neutral, assumptions, {
+      marginShift: Array(10).fill(-0.5),
+      multipleShift: -1,
+    });
+    expect(collapse.years.slice(1).every((y) => y.dividends === 0)).toBe(true);
+    expect(collapse.equityIrr).toBe(-1);
+  });
+
+  it("returns well-formed Monte Carlo results even for zero paths", () => {
+    const r = runMonteCarlo(base, neutral, assumptions, { ...DEFAULT_MONTE_CARLO, paths: 0 });
+    expect(Number.isFinite(r.covenantBreachProbability)).toBe(true);
+    expect(Number.isFinite(r.equityWipeoutProbability)).toBe(true);
+  });
+});

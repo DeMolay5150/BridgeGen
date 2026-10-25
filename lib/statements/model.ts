@@ -109,13 +109,15 @@ export interface PathOverrides {
   multipleShift?: number;
 }
 
+const REVENUE_GROWTH_RANGE = { min: -0.5, max: 0.5 };
+
 function sanitize(a: StatementAssumptions): StatementAssumptions {
   const out = { ...a };
   for (const key of Object.keys(STATEMENT_RANGES) as (keyof typeof STATEMENT_RANGES)[]) {
     out[key] = clamp(a[key], STATEMENT_RANGES[key]);
   }
   out.debtTermYears = Math.round(out.debtTermYears);
-  out.revenueGrowth = clamp(a.revenueGrowth, { min: -0.5, max: 0.5 });
+  out.revenueGrowth = clamp(a.revenueGrowth, REVENUE_GROWTH_RANGE);
   return out;
 }
 
@@ -175,11 +177,15 @@ export function buildStatements(
   const years = [opening];
   for (let year = 1; year <= PROJECTION_YEARS; year++) {
     const prev = years[year - 1];
-    const growth = overrides.growth?.[year - 1] ?? a.revenueGrowth;
+    // Path overrides get the same bounds as the base assumption.
+    const growth = clamp(overrides.growth?.[year - 1] ?? a.revenueGrowth, REVENUE_GROWTH_RANGE);
     const revenue = Math.max(prev.revenue * (1 + growth), 0);
     const margin = margin0 + (overrides.marginShift?.[year - 1] ?? 0);
 
-    const ebitda = margin * revenue;
+    // With no revenue on record there's no margin to apply: grow EBITDA itself
+    // (losses stay flat, as in project()) rather than collapsing it to zero.
+    const ebitda =
+      revenue0 > 0 ? margin * revenue : prev.ebitda > 0 ? prev.ebitda * (1 + growth) : prev.ebitda;
     const depreciation = a.depreciation * revenue;
     const ebit = ebitda - depreciation;
     const interest = prev.debt * rate;
@@ -250,7 +256,8 @@ export function buildStatements(
     years,
     day0Distribution: day0.netDistribution,
     todayEquityValue: today.equityValue,
-    equityIrr: today.equityValue > 0 ? irr(flows) : null,
+    // Nothing ever comes back: a total loss is −100%, not "no IRR".
+    equityIrr: today.equityValue > 0 ? (flows.slice(1).some((f) => f > 0) ? irr(flows) : -1) : null,
     wacc: wacc({
       equity: Math.max(day0.equityValue, 0),
       debt: day0.totalDebt,

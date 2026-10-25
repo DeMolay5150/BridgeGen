@@ -1,3 +1,4 @@
+import { PROJECTION_YEARS } from "../projection/model";
 import { COVERAGE_CRITICAL, LEVERAGE_CRITICAL } from "../simulator/engine";
 import type { Baseline, Scenario } from "../simulator/types";
 import { buildStatements, type StatementAssumptions } from "./model";
@@ -97,15 +98,16 @@ export function runMonteCarlo(
   settings: MonteCarloSettings = DEFAULT_MONTE_CARLO,
 ): MonteCarloResult {
   const draw = normal(mulberry32(settings.seed));
-  const horizon = Math.min(Math.max(Math.round(settings.horizon), 1), 10);
+  const horizon = Math.min(Math.max(Math.round(settings.horizon), 1), PROJECTION_YEARS);
   const equityValues: number[] = [];
   const irrs: number[] = [];
   let breaches = 0;
   let wipeouts = 0;
 
-  for (let path = 0; path < settings.paths; path++) {
-    const growth = Array.from({ length: 10 }, () => assumptions.revenueGrowth + settings.growthVolatility * draw());
-    const marginShift = Array.from({ length: 10 }, () => settings.marginVolatility * draw());
+  const paths = Math.max(1, Math.round(settings.paths));
+  for (let path = 0; path < paths; path++) {
+    const growth = Array.from({ length: PROJECTION_YEARS }, () => assumptions.revenueGrowth + settings.growthVolatility * draw());
+    const marginShift = Array.from({ length: PROJECTION_YEARS }, () => settings.marginVolatility * draw());
     // A multiple can halve or rise, but never go negative.
     const multipleShift = Math.max(-0.9, settings.multipleVolatility * draw());
     const model = buildStatements(baseline, scenario, assumptions, { growth, marginShift, multipleShift });
@@ -126,8 +128,8 @@ export function runMonteCarlo(
 
   return {
     settings: { ...settings, horizon },
-    covenantBreachProbability: breaches / settings.paths,
-    equityWipeoutProbability: wipeouts / settings.paths,
+    covenantBreachProbability: breaches / paths,
+    equityWipeoutProbability: wipeouts / paths,
     equityValue: percentiles(equityValues),
     equityIrr: irrs.length ? percentiles(irrs) : null,
     histogram: histogramOf(equityValues),

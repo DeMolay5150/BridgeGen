@@ -1,4 +1,4 @@
-import { MAX_GOVERNANCE_DISCOUNT, governanceDebtValue, scoreGovernance } from "../governance/model";
+import { MAX_GOVERNANCE_DISCOUNT, scoreGovernance } from "../governance/model";
 import { governanceBrief } from "../narrative/governance";
 import { redTeamBrief } from "../narrative/redteam";
 import { roomBrief } from "../narrative/room";
@@ -149,7 +149,7 @@ export function buildReport(input: ReportInput): ReportData {
       { label: "Equity value", value: formatMoney(result.equityValue) },
       { label: "Interest coverage", value: formatMultiple(result.interestCoverage) },
       { label: "Governance debt", value: `${Math.round(governance.score)}/100` },
-      { label: "Value at risk", value: formatMoney(governanceDebtValue(result.enterpriseValue, governance.score)) },
+      { label: "Value at risk", value: formatMoney(result.governanceDebt) },
     ],
     capital: {
       scenario: describeScenario(scenario, governance.score),
@@ -162,7 +162,7 @@ export function buildReport(input: ReportInput): ReportData {
     governance: {
       brief: briefs.governance,
       score: Math.round(governance.score),
-      atRisk: `${formatMoney(governanceDebtValue(result.enterpriseValue, governance.score))} (up to ${formatPercent(MAX_GOVERNANCE_DISCOUNT)} of enterprise value at 100/100)`,
+      atRisk: `${formatMoney(result.governanceDebt)} (up to ${formatPercent(MAX_GOVERNANCE_DISCOUNT)} of enterprise value at 100/100)`,
       categories: governance.categories.map((c) => ({
         label: c.label,
         points: `${Math.round(c.points)}/${c.maxPoints}`,
