@@ -8,6 +8,27 @@
 -- detection.
 set lock_timeout = '3s';
 
+-- A link's issue time is the server's, never the client's. The binding below
+-- (and the contract step's catch-up) trusts created_at, and until the
+-- contract step revokes them members can still write room_invites directly:
+-- a backdated created_at would bind hidden answers to a link they hold.
+create function public.room_invites_stamp_created_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.created_at := now();
+  return new;
+end;
+$$;
+
+create trigger room_invites_stamp_created_at
+  before insert or update on public.room_invites
+  for each row execute function public.room_invites_stamp_created_at();
+
+revoke execute on function public.room_invites_stamp_created_at() from public, anon, authenticated;
+
 alter table public.room_responses
   add column invite_token_hash text check (char_length(invite_token_hash) = 64);
 

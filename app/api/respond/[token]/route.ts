@@ -2,7 +2,8 @@ import type { NextRequest } from "next/server";
 import { recordAudit } from "@/lib/audit/server";
 import { EMPTY_RESPONSE } from "@/lib/room/response";
 import { responseBodySchema, stakeholderSchema, tokenSchema } from "@/lib/room/schema";
-import { inviteForToken, json, loadResponses, notFound, readBody } from "@/lib/room/server";
+import { inviteForToken, json, notFound, readBody } from "@/lib/room/server";
+import { rowsToResponses, type ResponseRow } from "@/lib/room/server-logic";
 import { hashToken } from "@/lib/room/tokens";
 import { PREDICTION_TARGET } from "@/lib/room/topics";
 import { STAKEHOLDER_LABELS } from "@/lib/simulator/alignment";
@@ -28,15 +29,16 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/respond
     .select("name")
     .eq("id", invite.companyId)
     .maybeSingle<{ name: string }>();
-  const responses = await loadResponses(invite.companyId);
-  // Answers saved through a link that has since been replaced stay hidden from the new one.
+  // Only answers saved through this very link: one query, so a save through a
+  // newer link can't land between reading the answers and checking whose they are.
   const { data: own } = await getAdminClient()
     .from("room_responses")
-    .select("invite_token_hash")
+    .select("stakeholder, positions, predictions, submitted")
     .eq("company_id", invite.companyId)
     .eq("stakeholder", invite.stakeholder)
-    .maybeSingle<{ invite_token_hash: string | null }>();
-  const response = own?.invite_token_hash === invite.tokenHash ? responses[invite.stakeholder] : undefined;
+    .eq("invite_token_hash", invite.tokenHash)
+    .returns<ResponseRow[]>();
+  const response = rowsToResponses(own ?? [])[invite.stakeholder];
 
   return json({
     companyName: company?.name ?? "",

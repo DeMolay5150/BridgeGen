@@ -63,7 +63,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/compani
   const { error } = await getAdminClient()
     .from("room_invites")
     .upsert(
-      { company_id: company.id, stakeholder: body.data.stakeholder, token_hash: hashToken(token), created_at: new Date().toISOString() },
+      { company_id: company.id, stakeholder: body.data.stakeholder, token_hash: hashToken(token) },
       { onConflict: "company_id,stakeholder" },
     );
   if (error) return json({ error: "Couldn't create the link" }, 500);

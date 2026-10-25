@@ -98,6 +98,10 @@ if (files.some((f) => f.endsWith("_room_response_binding.sql"))) {
   );
   check("binding: answers saved through today's link stay readable by it", bound.founder?.invite_token_hash === "1".repeat(64));
   check("binding: answers that predate a replaced link are hidden from the new one", bound.board?.invite_token_hash === null);
+  // A link's issue time is the server's: backdating it would bind hidden answers to the link.
+  await db.query("update room_invites set created_at = '1970-01-01' where token_hash = $1", ["2".repeat(64)]);
+  const stamped = (await db.query("select created_at from room_invites where token_hash = $1", ["2".repeat(64)])).rows[0]?.created_at;
+  check("binding: a link's issue time can't be backdated", new Date(stamped).getFullYear() >= 2026);
   check(
     "binding: the backfill keeps when the answers were saved",
     new Date(bound.founder?.updated_at).toISOString().startsWith("2026-10-05") &&
@@ -200,7 +204,8 @@ if (files.some((f) => f.endsWith("_hardening.sql"))) {
     "service",
     `select count(*)::int as n from unnest(array['anon', 'authenticated']) r,
        unnest(array['public.companies_default_firm()', 'public.firms_delete_empty()', 'public.users_create_personal_firm()',
-                    'public.firm_members_keep_owner()', 'public.audit_events_append_only()', 'public.set_updated_at()']) f
+                    'public.firm_members_keep_owner()', 'public.audit_events_append_only()', 'public.set_updated_at()',
+                    'public.room_invites_stamp_created_at()']) f
      where has_function_privilege(r, f, 'execute')`,
   );
   check("hardening: no API role holds EXECUTE on a trigger function", grants.rows[0]?.n === 0);
