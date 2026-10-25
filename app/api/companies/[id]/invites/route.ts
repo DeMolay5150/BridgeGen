@@ -31,7 +31,11 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/compani
   });
 }
 
-/** Creates (or replaces) a stakeholder's private link. The raw token is returned once and never stored. */
+/**
+ * Creates (or replaces) a stakeholder's private link. The raw token is returned once and never stored.
+ * The advisor who issues it is trusted with it (decision A1): a live link opens that stakeholder's
+ * answers, so it goes to the stakeholder directly and is replaced if it may have leaked.
+ */
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/companies/[id]/invites">) {
   const { id } = await ctx.params;
   const access = await authorize(id, "room:invite");

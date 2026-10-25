@@ -79,7 +79,8 @@ export function InvitePanel({
         {url && (
           <div className="grid gap-2 rounded-lg border border-border p-3">
             <span className="text-xs text-muted-foreground">
-              Copy this link now: it won&apos;t be shown again. Anyone with it can answer as the {label}.
+              Copy this link now: it won&apos;t be shown again. Anyone with it can see and change the {label}&apos;s
+              answers, so send it only to them and don&apos;t open it yourself.
             </span>
             <div className="flex gap-2">
               <Input readOnly value={url} aria-label={`Private link for the ${label}`} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
@@ -96,7 +97,8 @@ export function InvitePanel({
           {busy ? "Creating…" : status?.invitedAt ? "Replace link" : "Create private link"}
         </Button>
         {status?.invitedAt && !url && (
-          <p className="text-xs text-muted-foreground">Replacing the link disables the old one. Answers already given are kept.</p>
+          <p className="text-xs text-muted-foreground">Replacing the link disables the old one. Answers already given are kept for the gap analysis but
+            won&apos;t show through the new link. Replace it if the link may have reached anyone else.</p>
         )}
         {error && <p role="alert" className="text-xs text-critical">{error}</p>}
       </CardContent>

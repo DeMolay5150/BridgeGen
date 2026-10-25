@@ -153,3 +153,16 @@ Phases 1–9 are done and live on https://www.bridgegen.io. What remains needs a
 ### Needs a decision
 - [ ] Walkthrough voice-over audio
 - [ ] Remotion company licence (required for organisations over three people)
+
+## Phase 10: Sweep decisions (2026-10-25, branch `feat/2026-10-25-decisions`, stacked on `sweep/2026-10-25-hardening-contract`)
+Decisions from the October sweep (`docs/sweep-2026-10-25.md` §6–7).
+
+- [ ] **A1: stakeholder links = option (c).** Advisors are trusted with the links they issue. Document it in the sweep doc, instructions.md (confidentiality rule) and the invites route; no code change.
+- [ ] **A4: Upstash rate limit on `/api/respond/[token]`.** `@upstash/ratelimit` + `@upstash/redis` behind `lib/ratelimit/`. Sliding window per client IP (before any DB read) and per token hash, separate budgets for GET and POST; 429 with `Retry-After`. Unset `UPSTASH_REDIS_REST_URL`/`_TOKEN` = no limit (the demo and local dev keep working); Upstash errors or timeouts fail open. Unit tests on the pure parts (IP parsing, key derivation, decision → response).
+- [ ] **R5: naming.** "Value at Risk" = score-based governance discount on today's equity (simulator KPI, governance page, report, deck). "Expected Loss" = probability-weighted transition loss on Fork. Rename the labels, and add a reconciling step to the Fork explainer (Expected Loss = EV × 30% × chance of crisis by year N; Value at Risk uses the score in place of the probability).
+- [ ] **R1: Fork on the three-statement model.** `project()` becomes a view over `buildStatements()` plus the governance overlay; takes `StatementAssumptions`. Drop `cashConversion` (type, slider, schema; old saved rows parse, the key is stripped). Add `ownersEquity` to `YearPoint` so the explainer splits the lead exactly when equity is underwater. Rewrite projection tests against the statements. Fix the stale "aren't saved" copy on the statements card.
+- [ ] **ADR-001 multi-heir, staged.**
+  - Stage 1: `heirs: { id, name, share, active }[]` with shares summing to 1; `Holders.nextGen` stays the sum. Persistence default-merges old rows to one heir (share 1), snapshot test proves old companies simulate identically.
+  - Stage 2: engine semantics — successor exit buys out the largest active heir; control shift when any one heir out-owns the founder; deadlock caution when the top two heirs tie and neither holds a majority of the heir block.
+  - Stage 3: UI to name heirs and split shares; per-heir wealth in the simulator. Stage 4 (later): per-heir Decision Room seats.
+- [ ] Verify: type-check, lint, unit tests, migration checks, build. Then resume the a11y audit (phase 2) on "go".
