@@ -56,3 +56,7 @@ next-env.d.ts
 # rendered walkthrough video: re-rendered often, kept out of history (host externally)
 /public/walkthrough.mp4
 /public/walkthrough-poster.png
+
+# untrusted third-party agent personas, read for audits only
+/agency-agents/
+/agency-agents-main.zip
