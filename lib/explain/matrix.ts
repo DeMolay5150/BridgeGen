@@ -2,6 +2,8 @@ import {
   DEFAULT_PRIORITIES,
   STAKEHOLDER_LABELS,
   contributions,
+  contributionsFrom,
+  heirPriorities,
   scoreScenario,
   type Priorities,
 } from "../simulator/alignment";
@@ -52,6 +54,8 @@ export function explainEconomics(
   };
 }
 
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
 export function explainAlignment(
   baseline: Baseline,
   scenario: Scenario,
@@ -61,24 +65,51 @@ export function explainAlignment(
   const score = scoreScenario(baseline, scenario, governanceScore, priorities);
   const supports = score.stakeholders;
   const mean = supports.reduce((sum, s) => sum + s.support, 0) / supports.length;
-  const highest = supports.reduce((a, b) => (b.support > a.support ? b : a));
-  const lowest = supports.reduce((a, b) => (b.support < a.support ? b : a));
+  const heirsCount = score.heirs.length > 1 || score.heirs.some((h) => !h.active);
+  // The gap is measured across seats: each heir sits on their own, as in scoreScenario.
+  type Seat = { label: string; support: number; concerns: () => ReturnType<typeof contributions> };
+  const seats: Seat[] = [
+    ...supports
+      .filter((s) => s.id !== "nextGen")
+      .map((s) => ({ label: `the ${s.label}`, support: s.support, concerns: () => contributions(s.id, score.subScores, priorities) })),
+    ...score.heirs.map((h) => ({
+      label: heirsCount ? h.name : `the ${STAKEHOLDER_LABELS.nextGen}`,
+      support: h.support,
+      concerns: () => contributionsFrom(heirPriorities(h, priorities), score.subScores),
+    })),
+  ];
+  const highest = seats.reduce((a, b) => (b.support > a.support ? b : a));
+  const lowest = seats.reduce((a, b) => (b.support < a.support ? b : a));
   const spread = highest.support - lowest.support;
+  const nextGen = supports.find((s) => s.id === "nextGen")!;
+  const passive = score.heirs.filter((h) => !h.active).map((h) => h.name);
 
   const steps: ExplanationStep[] = [
     { text: `Support: ${supports.map((s) => `${s.label} ${formatScore(s.support)}`).join(" · ")}.` },
+    ...(heirsCount
+      ? [
+          {
+            text: `${STAKEHOLDER_LABELS.nextGen} support is each heir's, weighted by stake: ${score.heirs
+              .map((h) => `${h.name} ${formatPercent(h.share)} × ${formatScore(h.support)}`)
+              .join(" + ")} = ${formatScore(nextGen.support)}.`,
+          },
+          ...(passive.length && (priorities.nextGen.succession ?? 0) > 0
+            ? [{ text: `${passive.join(" and ")} ${passive.length > 1 ? "don't" : "doesn't"} work in the business, so the weight the next generation puts on succession counts as cash to shareholders instead.` }]
+            : []),
+        ]
+      : []),
     { text: `Average support is ${formatScore(mean)}.` },
     spread > 0.05
-      ? { text: `The ${highest.label} (${formatScore(highest.support)}) and the ${lowest.label} (${formatScore(lowest.support)}) are ${formatScore(spread)} points apart.`, tone: spread >= 40 ? "critical" : spread >= 20 ? "caution" : undefined }
+      ? { text: `${capitalize(highest.label)} (${formatScore(highest.support)}) and ${lowest.label} (${formatScore(lowest.support)}) are ${formatScore(spread)} points apart${heirsCount ? ", counting each heir separately" : ""}.`, tone: spread >= 40 ? "critical" : spread >= 20 ? "caution" : undefined }
       : { text: "Every stakeholder sees it the same way.", tone: "positive" },
     { text: `Alignment = ${formatScore(mean)} − half the gap (${formatScore(spread / 2)}) = ${formatScore(score.alignment)}.` },
   ];
 
-  // What the least-supportive stakeholder weighs most heavily.
-  const topConcern = contributions(lowest.id, score.subScores, priorities).sort((a, b) => b.weight - a.weight)[0];
+  // What the least-supportive seat weighs most heavily.
+  const topConcern = lowest.concerns().sort((a, b) => b.weight - a.weight)[0];
   if (spread > 0.05 && topConcern) {
     steps.push({
-      text: `Fastest way to raise consensus: address what the ${STAKEHOLDER_LABELS[lowest.id]} cares about most, ${topConcern.label.toLowerCase()}.`,
+      text: `Fastest way to raise consensus: address what ${lowest.label} cares about most, ${topConcern.label.toLowerCase()}.`,
     });
   }
 

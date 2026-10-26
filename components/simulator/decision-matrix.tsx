@@ -16,6 +16,7 @@ import { explainAlignment, explainEconomics } from "@/lib/explain/matrix";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/chart";
 import { scoreScenario, type MatrixScore } from "@/lib/simulator/alignment";
+import { formatPercent } from "@/lib/simulator/format";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { STRATEGIES, strategyScenario, type Strategy } from "@/lib/simulator/strategies";
 import type { Severity } from "@/lib/simulator/types";
@@ -325,6 +326,22 @@ export function DecisionMatrix() {
                         style={{ width: `${s.support}%` }}
                       />
                     </div>
+                    {s.id === "nextGen" && (current.heirs.length > 1 || current.heirs.some((h) => !h.active)) && (
+                      // Each heir's own support; the bar above is these weighted by stake.
+                      <ul className="grid gap-1 pl-3 text-xs text-muted-foreground" aria-label="Support by heir">
+                        {current.heirs.map((h) => (
+                          <li key={h.id} className="flex items-baseline justify-between gap-3">
+                            <span className="min-w-0 truncate">
+                              {h.name} · {formatPercent(h.share)}
+                              {!h.active && " · not in the business"}
+                            </span>
+                            <span className={cn("font-mono tabular-nums", SEVERITY_TEXT[supportSeverity(h.support)])}>
+                              {round(h.support)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 );
               })}

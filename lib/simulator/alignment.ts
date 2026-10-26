@@ -1,6 +1,6 @@
 import { clamp, neutralScenario } from "./defaults";
 import { simulate } from "./engine";
-import type { Baseline, Scenario, SimulationResult } from "./types";
+import type { Baseline, HeirHolding, Scenario, SimulationResult } from "./types";
 
 /**
  * Economics vs. Alignment scoring. Every score is 0–100 and derived from
@@ -150,10 +150,24 @@ export interface StakeholderSupport {
   support: number;
 }
 
+/** One heir's own support; the Next-gen heir row is these averaged by stake. */
+export interface HeirSupport {
+  id: string;
+  name: string;
+  /** Share of the next generation's stake (shares sum to 1). */
+  share: number;
+  active: boolean;
+  support: number;
+}
+
 export interface MatrixScore {
   economics: number;
   alignment: number;
   stakeholders: StakeholderSupport[];
+  /** Every heir with a stake, in list order. One default heir gives one row equal to the Next-gen heir. */
+  heirs: HeirSupport[];
+  /** Highest minus lowest support among the heirs (0 with a single heir). */
+  heirDispersion: number;
   subScores: SubScores;
 }
 
@@ -166,14 +180,29 @@ export interface Contribution {
   impact: number;
 }
 
+/**
+ * The priorities an heir judges a scenario on. An heir who works in the business
+ * weighs succession as the Next-gen heir does; one who doesn't experiences
+ * succession as income, so that weight counts towards cash to shareholders.
+ */
+export function heirPriorities(heir: Pick<HeirHolding, "active">, priorities: Priorities = DEFAULT_PRIORITIES) {
+  const nextGen = priorities.nextGen;
+  if (heir.active) return nextGen;
+  return { ...nextGen, succession: 0, liquidity: (nextGen.liquidity ?? 0) + (nextGen.succession ?? 0) };
+}
+
 /** Each priority's normalized weight and its pull on support. Empty if nothing matters. */
 export function contributions(
   id: StakeholderId,
   scores: SubScores,
   priorities: Priorities = DEFAULT_PRIORITIES,
 ): Contribution[] {
+  return contributionsFrom(priorities[id], scores);
+}
+
+/** As `contributions`, for one raw priority set (a stakeholder's or an heir's). */
+export function contributionsFrom(raw: Record<PriorityKey, number>, scores: SubScores): Contribution[] {
   const inputs: Record<PriorityKey, number> = { ...scores, capitalRetention: 100 - scores.liquidity };
-  const raw = priorities[id];
   const importance = (key: PriorityKey) => clamp(raw[key] ?? 0, PRIORITY_RANGE);
   const total = PRIORITY_KEYS.reduce((sum, key) => sum + importance(key), 0);
   if (total <= 0) return [];
@@ -183,8 +212,8 @@ export function contributions(
   });
 }
 
-function supportFor(id: StakeholderId, scores: SubScores, priorities: Priorities): number {
-  const parts = contributions(id, scores, priorities);
+function supportFrom(raw: Record<PriorityKey, number>, scores: SubScores): number {
+  const parts = contributionsFrom(raw, scores);
   // A stakeholder who cares about nothing is neutral.
   if (parts.length === 0) return 50;
   const inputs: Record<PriorityKey, number> = { ...scores, capitalRetention: 100 - scores.liquidity };
@@ -204,15 +233,30 @@ export function scoreScenario(
   const today = simulate(baseline, neutralScenario(baseline));
   const scores = subScores(baseline, scenario, result, today, governanceScore);
 
+  // Heirs without a stake have no say; normalized shares never all vanish.
+  const heirs: HeirSupport[] = result.heirs
+    .filter((h) => h.share > 0)
+    .map((h) => ({
+      id: h.id,
+      name: h.name,
+      share: h.share,
+      active: h.active,
+      support: supportFrom(heirPriorities(h, priorities), scores),
+    }));
+  const heirBlock = heirs.reduce((sum, h) => sum + h.share * h.support, 0);
+
   const stakeholders = STAKEHOLDER_IDS.map((id) => ({
     id,
     label: STAKEHOLDER_LABELS[id],
-    support: supportFor(id, scores, priorities),
+    support: id === "nextGen" ? pct(heirBlock) : supportFrom(priorities[id], scores),
   }));
 
   const supports = stakeholders.map((s) => s.support);
   const mean = supports.reduce((sum, s) => sum + s, 0) / supports.length;
-  const spread = Math.max(...supports) - Math.min(...supports);
+  // Disagreement counts every heir as their own seat, so a split family costs consensus.
+  const seats = [...stakeholders.filter((s) => s.id !== "nextGen").map((s) => s.support), ...heirs.map((h) => h.support)];
+  const spread = Math.max(...seats) - Math.min(...seats);
+  const heirSupports = heirs.map((h) => h.support);
 
   return {
     economics: pct(
@@ -220,6 +264,8 @@ export function scoreScenario(
     ),
     alignment: pct(mean - DISAGREEMENT_PENALTY * spread),
     stakeholders,
+    heirs,
+    heirDispersion: Math.max(...heirSupports) - Math.min(...heirSupports),
     subScores: scores,
   };
 }

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { explainAlignment } from "../explain/matrix";
 import { DEMO_GOVERNANCE } from "../governance/model";
 import { fromRow, toRow, defaultSnapshot } from "../persistence/serialize";
 import { project, DEFAULT_PROJECTION_INPUTS } from "../projection/model";
 import { SHOCKS, runShock } from "../redteam/shocks";
+import { DEFAULT_PRIORITIES, scoreScenario } from "./alignment";
 import { DEMO_BASELINE, neutralScenario } from "./defaults";
 import { simulate } from "./engine";
 import { DEFAULT_HEIRS, departingHeir, heirDeadlock, normalizeHeirs } from "./heirs";
@@ -41,6 +43,7 @@ describe("saved companies without heirs", () => {
   it("simulate exactly as with the single default heir", () => {
     for (const scenario of scenarios) {
       expect(simulate(base, scenario, 78)).toEqual(simulate(withHeirs(DEFAULT_HEIRS), scenario, 78));
+      expect(scoreScenario(base, scenario, 78)).toEqual(scoreScenario(withHeirs(DEFAULT_HEIRS), scenario, 78));
     }
   });
 
@@ -141,5 +144,59 @@ describe("persistence", () => {
     const parsed = fromRow(row);
     expect(parsed.baseline.ebitda).toBe(20);
     expect(parsed.baseline.heirs).toBeUndefined();
+  });
+});
+
+describe("stake-weighted heir alignment", () => {
+  // A dividend recap with a 60% transfer: cash goes out, the next generation gains ground.
+  const recap: Scenario = { ...transfer(0.6), leverage: 4 };
+  const support = (score: ReturnType<typeof scoreScenario>, id: string) => score.stakeholders.find((s) => s.id === id)!.support;
+
+  it("gives the single default heir the Next-gen heir's support, with no dispersion", () => {
+    const score = scoreScenario(base, recap);
+    expect(score.heirs).toHaveLength(1);
+    expect(score.heirs[0].support).toBe(support(score, "nextGen"));
+    expect(score.heirDispersion).toBe(0);
+  });
+
+  it("scores heirs who all work in the business alike, so splitting them changes nothing", () => {
+    const split = scoreScenario(withHeirs([heir("Ana", 0.5, true), heir("Ben", 0.5, true)]), recap);
+    const single = scoreScenario(base, recap);
+    expect(split.heirs.map((h) => h.support)).toEqual([support(single, "nextGen"), support(single, "nextGen")]);
+    expect(split.alignment).toBeCloseTo(single.alignment, 12);
+    expect(split.heirDispersion).toBe(0);
+  });
+
+  it("judges an heir outside the business on cash rather than succession, and weights the block by stake", () => {
+    const score = scoreScenario(withHeirs([heir("Ana", 0.75, true), heir("Ben", 0.25)]), recap);
+    const [ana, ben] = score.heirs;
+    expect(ana.support).not.toBeCloseTo(ben.support, 3);
+    expect(support(score, "nextGen")).toBeCloseTo(0.75 * ana.support + 0.25 * ben.support, 12);
+    expect(score.heirDispersion).toBeCloseTo(Math.abs(ana.support - ben.support), 12);
+  });
+
+  it("counts every heir as a seat in the disagreement penalty", () => {
+    const score = scoreScenario(withHeirs([heir("Ana", 0.75, true), heir("Ben", 0.25)]), recap);
+    const others = score.stakeholders.filter((s) => s.id !== "nextGen").map((s) => s.support);
+    const seats = [...others, ...score.heirs.map((h) => h.support)];
+    const mean = score.stakeholders.reduce((sum, s) => sum + s.support, 0) / 4;
+    expect(score.alignment).toBeCloseTo(Math.max(0, mean - 0.5 * (Math.max(...seats) - Math.min(...seats))), 12);
+  });
+
+  it("leaves out heirs with no stake", () => {
+    const score = scoreScenario(withHeirs([heir("Ana", 1, true), heir("Ben", 0)]), recap);
+    expect(score.heirs.map((h) => h.name)).toEqual(["Ana"]);
+  });
+
+  it("explains the weighting with the engine's own figures", () => {
+    const baseline = withHeirs([heir("Ana", 0.75, true), heir("Ben", 0.25)]);
+    const score = scoreScenario(baseline, recap);
+    const text = explainAlignment(baseline, recap).steps.map((s) => s.text).join(" | ");
+    expect(text).toContain("Next-gen heir support is each heir's, weighted by stake: Ana 75% ×");
+    expect(text).toContain("Ben doesn't work in the business");
+    expect(text).toContain(`= ${score.alignment.toFixed(1)}.`);
+    // The default single heir reads exactly as before heirs existed.
+    expect(explainAlignment(base, recap).steps.map((s) => s.text).join(" | ")).not.toContain("weighted by stake");
+    expect(DEFAULT_PRIORITIES.nextGen.succession).toBeGreaterThan(0);
   });
 });
