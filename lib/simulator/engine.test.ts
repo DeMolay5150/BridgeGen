@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEMO_BASELINE, neutralScenario } from "./defaults";
 import { simulate } from "./engine";
 import { formatMoney, formatMultiple, formatSignedPercent } from "./format";
-import type { Baseline, Scenario, SimulationResult } from "./types";
+import type { Baseline, BaselineFigures, Scenario, SimulationResult } from "./types";
 
 const base = DEMO_BASELINE;
 const neutral = neutralScenario(base);
@@ -181,7 +181,7 @@ describe("simulate: governance debt", () => {
 
 describe("simulate: hostile inputs", () => {
   const extremes = [Number.NaN, -Infinity, -1e12, -1, 0, 0.5, 1e12, Infinity];
-  const numericBaseline = Object.keys(base) as (keyof Baseline)[];
+  const numericBaseline = Object.keys(base) as (keyof BaselineFigures)[];
   const numericScenario = (Object.keys(neutral) as (keyof Scenario)[]).filter(
     (k) => k !== "outsideCeo",
   );

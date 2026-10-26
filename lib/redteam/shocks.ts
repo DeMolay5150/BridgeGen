@@ -9,12 +9,13 @@ import {
   simulate,
 } from "../simulator/engine";
 import { formatPercent } from "../simulator/format";
+import { departingHeir, isSingleDefaultHeir } from "../simulator/heirs";
 import type { Baseline, Scenario, SimulationResult } from "../simulator/types";
 import type { ShockChanges, ShockId, ShockResult, StressMetrics, Verdict } from "./types";
 
 /** Calibration. Each "× gap" term scales with the matching governance gaps (0–1). */
 const INCAPACITATION = { base: 0.05, perAuthorityGap: 0.15, outsideCeoRelief: 0.5 };
-const SUCCESSOR_EXIT = { ebitdaCut: 0.03, agreementDiscount: 0.25, disputeCutPerGap: 0.1 };
+const SUCCESSOR_EXIT = { ebitdaCut: 0.03, agreementDiscount: 0.25, disputeCutPerGap: 0.1, perRemainingHeir: 0.25, maxRemainingHeirs: 3 };
 const DOWNTURN = { ebitdaCut: 0.25, perBoardGap: 0.1, multipleCut: 0.25, rateIncrease: 0.02 };
 
 interface ShockContext {
@@ -58,9 +59,15 @@ function incapacitation({ result, scenario, governance }: ShockContext): ShockOu
   };
 }
 
+/**
+ * The successor walks away: the largest active heir (else the largest heir)
+ * is bought out with new debt. Every heir who stays is another party to a
+ * contested price, so the dispute discount grows with them.
+ */
 function successorExit({ result, governance }: ShockContext): ShockOutcome {
-  const heirStake = result.ownership.nextGen * Math.max(result.equityValue, 0);
-  if (heirStake <= 0) {
+  const heir = departingHeir(result.heirs);
+  const heirStake = heir ? heir.ownership * Math.max(result.equityValue, 0) : 0;
+  if (!heir || heirStake <= 0) {
     return {
       changes: { ...NO_CHANGE, ebitdaCut: SUCCESSOR_EXIT.ebitdaCut },
       warnings: ["No heir stake: limited exposure. Only the loss of the successor's management role is felt."],
@@ -70,13 +77,22 @@ function successorExit({ result, governance }: ShockContext): ShockOutcome {
   const price = heirStake * (1 - SUCCESSOR_EXIT.agreementDiscount * (1 - buySellGap));
   const disputeGap =
     (buySellGap + itemGap(governance, "votingRules") + itemGap(governance, "disputeResolution")) / 3;
-  const warnings = ["The company borrows to buy out the departing heir's shares."];
+  const remaining = result.heirs.filter((h) => h !== heir && h.ownership > 0).length;
+  const disputeScale = 1 + SUCCESSOR_EXIT.perRemainingHeir * Math.min(remaining, SUCCESSOR_EXIT.maxRemainingHeirs);
+  const warnings = isSingleDefaultHeir(result.heirs)
+    ? ["The company borrows to buy out the departing heir's shares."]
+    : [`The company borrows to buy out ${heir.name}'s shares (${formatPercent(heir.ownership)} of the company).`];
+  if (remaining > 0) {
+    warnings.push(
+      `${remaining} other ${remaining === 1 ? "heir stays" : "heirs stay"} on as ${remaining === 1 ? "an owner" : "owners"}, so a contested price can spread into a wider family dispute.`,
+    );
+  }
   if (buySellGap >= 1) warnings.push("No buy-sell agreement: the price is set by negotiation or litigation, at full value.");
   return {
     changes: {
       ...NO_CHANGE,
       ebitdaCut: SUCCESSOR_EXIT.ebitdaCut,
-      multipleCut: SUCCESSOR_EXIT.disputeCutPerGap * disputeGap,
+      multipleCut: SUCCESSOR_EXIT.disputeCutPerGap * disputeGap * disputeScale,
       extraDebt: price,
     },
     warnings,

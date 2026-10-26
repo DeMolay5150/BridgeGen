@@ -1,5 +1,5 @@
 import { parseNumber } from "../parse-number";
-import type { Baseline } from "../simulator/types";
+import type { BaselineFigures } from "../simulator/types";
 
 /*
  * Spreadsheet clipboard interop. Excel, Google Sheets and Numbers all copy
@@ -24,7 +24,7 @@ export function fromTsv(text: string): string[][] {
 type Unit = "money" | "multiple" | "percent";
 
 /** Baseline fields in the order the panel shows them, with the labels a spreadsheet might use. */
-const BASELINE_FIELDS: { key: keyof Baseline; unit: Unit; aliases: string[] }[] = [
+const BASELINE_FIELDS: { key: keyof BaselineFigures; unit: Unit; aliases: string[] }[] = [
   { key: "revenue", unit: "money", aliases: ["revenue", "sales", "turnover", "net revenue"] },
   { key: "ebitda", unit: "money", aliases: ["ebitda", "adjusted ebitda"] },
   { key: "multiple", unit: "multiple", aliases: ["ebitda multiple", "multiple", "ev/ebitda", "ev / ebitda"] },
@@ -56,9 +56,9 @@ const normalizeLabel = (label: string) =>
  * label/value pairs in any order ("Revenue  40") or bare numbers in the
  * panel's order, as a row or a column. Returns null when nothing matches.
  */
-export function parseBaselinePaste(text: string): Partial<Baseline> | null {
+export function parseBaselinePaste(text: string): Partial<BaselineFigures> | null {
   const rows = fromTsv(text);
-  const out: Partial<Baseline> = {};
+  const out: Partial<BaselineFigures> = {};
 
   const labelled = rows.filter((r) => r.length >= 2 && parseNumber(r[0]) === null);
   if (labelled.length > 0) {

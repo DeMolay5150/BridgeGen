@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_PRIORITIES, contributions, scoreScenario, type Priorities } from "./alignment";
 import { DEMO_BASELINE, neutralScenario } from "./defaults";
 import { STRATEGIES, strategyScenario } from "./strategies";
-import type { Baseline, Scenario } from "./types";
+import type { Baseline, BaselineFigures, Scenario } from "./types";
 
 const base = DEMO_BASELINE;
 const neutral = neutralScenario(base);
@@ -168,7 +168,7 @@ describe("scoreScenario: behaviour", () => {
     const extremes = [Number.NaN, -Infinity, -1e12, -1, 0, 0.5, 1e12, Infinity];
     const inRange = (n: number) => Number.isFinite(n) && n >= 0 && n <= 100;
     for (const value of extremes) {
-      for (const key of Object.keys(base) as (keyof Baseline)[]) {
+      for (const key of Object.keys(base) as (keyof BaselineFigures)[]) {
         for (const outsideCeo of [false, true]) {
           const s = scoreScenario({ ...base, [key]: value }, { ...neutralScenario(base), outsideCeo, leverage: value, equityTransfer: value, multipleShock: value });
           expect(inRange(s.economics)).toBe(true);

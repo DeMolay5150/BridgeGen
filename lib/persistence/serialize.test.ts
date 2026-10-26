@@ -36,7 +36,7 @@ describe("company serialization", () => {
     expect(legacy.governance.votingRules).toBe("yes");
     expect(legacy.fork.assumptions).toEqual({ ebitdaGrowth: 0.02 });
     // Rows saved before Fork moved onto the statements carry cashConversion; it's dropped, not an error.
-    const withConversion = fromRow({ fork: { assumptions: { ebitdaGrowth: 0.03, cashConversion: 0.4 } } });
+    const withConversion = fromRow({ baseline: {}, scenario: {}, governance: {}, priorities: {}, fork: { assumptions: { ebitdaGrowth: 0.03, cashConversion: 0.4 } } });
     expect(withConversion.fork.assumptions).toEqual({ ebitdaGrowth: 0.03 });
     // Rows saved before the three-statement inputs were persisted get the defaults.
     expect(legacy.fork.statements).toEqual(defaultSnapshot().fork.statements);

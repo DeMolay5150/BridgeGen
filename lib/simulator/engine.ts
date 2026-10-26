@@ -1,8 +1,10 @@
 import { governanceDebtValue } from "../governance/model";
 import { BASELINE_LIMITS, SCENARIO_RANGES, clamp, leverageRange } from "./defaults";
-import { formatMoney, formatMultiple } from "./format";
+import { formatMoney, formatMultiple, formatPercent } from "./format";
+import { heirDeadlock, heirHoldings, isSingleDefaultHeir, normalizeHeirs } from "./heirs";
 import type {
   Baseline,
+  HeirHolding,
   Holders,
   RiskSignal,
   Scenario,
@@ -27,6 +29,7 @@ function sanitizeBaseline(baseline: Baseline): Baseline {
     existingDebt: clamp(baseline.existingDebt, BASELINE_LIMITS.existingDebt),
     interestRate: clamp(baseline.interestRate, BASELINE_LIMITS.interestRate),
     founderOwnership: clamp(baseline.founderOwnership, BASELINE_LIMITS.founderOwnership),
+    heirs: normalizeHeirs(baseline.heirs),
   };
 }
 
@@ -89,6 +92,7 @@ export function simulate(
   };
   const holderEquity = splitBy(ownership, Math.max(equityValue, 0));
   const holderDistribution = splitBy(ownership, netDistribution);
+  const heirs = heirHoldings(baseline.heirs!, ownership, holderEquity, holderDistribution);
 
   const interestExpense = totalDebt * baseline.interestRate;
   const interestCoverage = interestExpense > 0 ? adjustedEbitda / interestExpense : null;
@@ -102,6 +106,7 @@ export function simulate(
     interestCoverage,
     debtToEbitda,
     ownership,
+    heirs,
     governance,
     governanceDebt,
   });
@@ -117,6 +122,7 @@ export function simulate(
     ownership,
     holderEquity,
     holderDistribution,
+    heirs,
     interestExpense,
     interestCoverage,
     debtToEbitda,
@@ -125,12 +131,53 @@ export function simulate(
   };
 }
 
+/** Control and deadlock signals among the next generation. One unnamed heir reads as before heirs existed. */
+function heirSignals(ownership: Holders, heirs: HeirHolding[]): RiskSignal[] {
+  if (ownership.nextGen <= ownership.founder) return [];
+  if (isSingleDefaultHeir(heirs)) {
+    return [{
+      id: "control-shift",
+      severity: "caution",
+      title: "Control shifts to the next generation",
+      detail: "Heirs now hold more equity than the founder. Confirm governance and voting rights reflect the new balance.",
+    }];
+  }
+  const signals: RiskSignal[] = [];
+  const outOwn = heirs.filter((h) => h.ownership > ownership.founder).sort((a, b) => b.ownership - a.ownership);
+  signals.push(
+    outOwn.length > 0
+      ? {
+          id: "control-shift",
+          severity: "caution",
+          title: "Control shifts to the next generation",
+          detail: `${outOwn.map((h) => `${h.name} (${formatPercent(h.ownership)})`).join(" and ")} now ${outOwn.length === 1 ? "holds" : "each hold"} more equity than the founder (${formatPercent(ownership.founder)}). Confirm governance and voting rights reflect the new balance.`,
+        }
+      : {
+          id: "heirs-bloc",
+          severity: "caution",
+          title: "Heirs together out-own the founder",
+          detail: `No single heir out-owns the founder, but together the heirs hold ${formatPercent(ownership.nextGen)} against ${formatPercent(ownership.founder)}. Decisions now depend on the heirs agreeing with each other.`,
+        },
+  );
+  const tie = heirDeadlock(heirs);
+  if (tie) {
+    signals.push({
+      id: "heir-deadlock",
+      severity: "caution",
+      title: "Deadlock risk between heirs",
+      detail: `${tie[0].name} and ${tie[1].name} hold equal stakes (${formatPercent(tie[0].ownership)} each) and neither has a majority of the heirs' shares. Without tie-break voting rules, a disagreement between them can stall decisions.`,
+    });
+  }
+  return signals;
+}
+
 function assessRisks(r: {
   adjustedEbitda: number;
   equityValue: number;
   interestCoverage: number | null;
   debtToEbitda: number | null;
   ownership: Holders;
+  heirs: HeirHolding[];
   governance: number;
   governanceDebt: number;
 }): RiskSignal[] {
@@ -174,14 +221,7 @@ function assessRisks(r: {
     });
   }
 
-  if (r.ownership.nextGen > r.ownership.founder) {
-    signals.push({
-      id: "control-shift",
-      severity: "caution",
-      title: "Control shifts to the next generation",
-      detail: "Heirs now hold more equity than the founder. Confirm governance and voting rights reflect the new balance.",
-    });
-  }
+  signals.push(...heirSignals(r.ownership, r.heirs));
 
   if (r.governance >= GOVERNANCE_CAUTION) {
     const critical = r.governance >= GOVERNANCE_CRITICAL;

@@ -4,8 +4,8 @@
  * are fractions (0.08 = 8%).
  */
 
-/** The company as it stands today. Editable by the advisor. */
-export interface Baseline {
+/** The company's figures today: every numeric baseline input. */
+export interface BaselineFigures {
   revenue: number;
   ebitda: number;
   /** EV / EBITDA multiple. */
@@ -15,6 +15,32 @@ export interface Baseline {
   interestRate: number;
   /** Founder's share of equity; the remainder is held by other shareholders. */
   founderOwnership: number;
+}
+
+/** One member of the next generation. */
+export interface Heir {
+  id: string;
+  name: string;
+  /** Share of whatever equity the founder transfers to the next generation (heirs' shares sum to 1). */
+  share: number;
+  /** Works in the business: a successor rather than a passive owner. */
+  active: boolean;
+}
+
+/** The company as it stands today. Editable by the advisor. */
+export interface Baseline extends BaselineFigures {
+  /** Who the next generation is. Missing means one unnamed heir, as before heirs could be named. */
+  heirs?: Heir[];
+}
+
+/** An heir's slice of the post-decision company. */
+export interface HeirHolding extends Heir {
+  /** Share of the whole company. */
+  ownership: number;
+  /** Equity value, floored at zero. */
+  equity: number;
+  /** Share of the net distribution. */
+  distribution: number;
 }
 
 /** The decision being simulated. Driven by the sliders. */
@@ -68,6 +94,8 @@ export interface SimulationResult {
   holderEquity: Holders;
   /** Each holder's share of the net distribution. */
   holderDistribution: Holders;
+  /** The next generation, heir by heir; their ownership sums to `ownership.nextGen`. */
+  heirs: HeirHolding[];
   interestExpense: number;
   /** Adjusted EBITDA / interest expense; null when there is no interest. */
   interestCoverage: number | null;

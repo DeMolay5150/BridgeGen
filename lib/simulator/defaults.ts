@@ -1,4 +1,4 @@
-import type { Baseline, Scenario } from "./types";
+import type { Baseline, BaselineFigures, Scenario } from "./types";
 
 export interface Range {
   min: number;
@@ -17,7 +17,7 @@ export const DEMO_BASELINE: Baseline = {
 };
 
 /** Accepted bounds for baseline inputs. */
-export const BASELINE_LIMITS: Record<keyof Baseline, Range> = {
+export const BASELINE_LIMITS: Record<keyof BaselineFigures, Range> = {
   revenue: { min: 0, max: 100_000 },
   ebitda: { min: -10_000, max: 10_000 },
   multiple: { min: 0, max: 50 },

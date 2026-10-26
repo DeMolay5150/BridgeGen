@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DEMO_GOVERNANCE } from "../governance/model";
 import type { GovernanceAnswers } from "../governance/types";
 import { DEFAULT_ASSUMPTIONS } from "../projection/model";
+import { MAX_HEIRS, MAX_HEIR_NAME } from "../simulator/heirs";
 import type { ForkState } from "../projection/types";
 import { DEFAULT_PRIORITIES, PRIORITY_KEYS, STAKEHOLDER_IDS, type Priorities } from "../simulator/alignment";
 import { DEMO_BASELINE, neutralScenario } from "../simulator/defaults";
@@ -35,8 +36,23 @@ const finite = z.number().finite();
 const practice = z.enum(["yes", "partial", "no"]);
 const branch = z.object({ source: z.string().max(40), fixGovernance: z.boolean() });
 
+// Shares are normalized by the engine (normalizeHeirs), so only shape and size are checked here.
+const heirSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().max(MAX_HEIR_NAME),
+  share: finite,
+  active: z.boolean(),
+});
 export const baselineSchema = z
-  .object({ revenue: finite, ebitda: finite, multiple: finite, existingDebt: finite, interestRate: finite, founderOwnership: finite })
+  .object({
+    revenue: finite,
+    ebitda: finite,
+    multiple: finite,
+    existingDebt: finite,
+    interestRate: finite,
+    founderOwnership: finite,
+    heirs: z.array(heirSchema).min(1).max(MAX_HEIRS),
+  })
   .partial();
 export const scenarioSchema = z
   .object({ leverage: finite, equityTransfer: finite, multipleShock: finite, outsideCeo: z.boolean(), ceoCost: finite, ceoUplift: finite })

@@ -5,13 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parseBaselinePaste } from "@/lib/clipboard/tsv";
+import { HeirsEditor } from "./heirs-editor";
 import { parseNumber } from "@/lib/parse-number";
 import { BASELINE_LIMITS, clamp } from "@/lib/simulator/defaults";
 import { useSimulatorStore } from "@/lib/simulator/store";
-import type { Baseline } from "@/lib/simulator/types";
+import type { BaselineFigures } from "@/lib/simulator/types";
 
 interface FieldSpec {
-  key: keyof Baseline;
+  key: keyof BaselineFigures;
   label: string;
   unit: "$M" | "x" | "%";
 }
@@ -84,7 +85,7 @@ export function BaselinePanel() {
     if (!values) return;
     event.preventDefault();
     const clamped = Object.fromEntries(
-      Object.entries(values).map(([key, value]) => [key, clamp(value, BASELINE_LIMITS[key as keyof Baseline])]),
+      Object.entries(values).map(([key, value]) => [key, clamp(value, BASELINE_LIMITS[key as keyof BaselineFigures])]),
     );
     setBaseline(clamped);
     setPasted(Object.keys(clamped).length);
@@ -107,6 +108,7 @@ export function BaselinePanel() {
         {FIELDS.map((spec) => (
           <BaselineField key={spec.key} spec={spec} />
         ))}
+        <HeirsEditor />
       </CardContent>
     </Card>
   );

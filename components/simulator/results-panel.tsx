@@ -108,6 +108,24 @@ function OwnershipSplit({ result }: { result: SimulationResult }) {
             </li>
           ))}
         </ul>
+        {result.heirs.length > 1 && result.ownership.nextGen > 0 && (
+          <div className="grid gap-2 border-t border-border pt-3">
+            <span className="text-xs text-muted-foreground">Next generation, heir by heir</span>
+            <ul className="grid gap-1.5 text-sm">
+              {result.heirs.map((h) => (
+                <li key={h.id} className="flex flex-wrap items-baseline justify-between gap-x-4">
+                  <span>
+                    {h.name}
+                    {h.active && <span className="ml-2 text-xs text-muted-foreground">works in the business</span>}
+                  </span>
+                  <span className="font-mono tabular-nums">
+                    {formatPercent(h.ownership)} · {formatMoney(h.equity)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
