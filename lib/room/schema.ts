@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { STAKEHOLDER_IDS, type StakeholderId } from "../simulator/alignment";
+import { seatSchema } from "./seats";
 import { TOPIC_IDS } from "./topics";
 import type { Answers } from "./types";
 
@@ -21,7 +22,8 @@ export const responseBodySchema = z.object({
   submitted: z.boolean(),
 });
 
-export const inviteBodySchema = z.object({ stakeholder: stakeholderSchema });
+/** A link for one of the four stakeholders, or for one named heir (`nextGen:<heir id>`). */
+export const inviteBodySchema = z.object({ stakeholder: seatSchema });
 
 /** Invite tokens are 32 random bytes, base64url-encoded (43 characters). */
 export const tokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);

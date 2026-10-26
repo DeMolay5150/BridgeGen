@@ -7,8 +7,9 @@ import type { CompanySnapshot } from "../persistence/serialize";
 import { breakingPoints } from "../redteam/breaking";
 import { SHOCKS, runShock } from "../redteam/shocks";
 import type { Verdict } from "../redteam/types";
+import { seatName } from "../room/seats";
 import type { RoomGaps } from "../room/types";
-import { STAKEHOLDER_LABELS, scoreScenario } from "../simulator/alignment";
+import { scoreScenario } from "../simulator/alignment";
 import { BASELINE_LIMITS, clamp, neutralScenario } from "../simulator/defaults";
 import { describeScenario } from "../simulator/describe";
 import { simulate } from "../simulator/engine";
@@ -131,7 +132,7 @@ export function buildReport(input: ReportInput): ReportData {
   const briefs = {
     governance: governanceBrief(answers, result.enterpriseValue),
     redTeam: redTeamBrief(shocks, breakingPoints(result, rate), breakingPoints(today, rate)),
-    room: roomBrief(input.gaps),
+    room: roomBrief(input.gaps, baseline.heirs),
   };
   const sections = REPORT_SECTIONS.map((s) => s.id).filter((id) => input.sections.includes(id));
   const sectionLabel = (id: ReportSectionId) => REPORT_SECTIONS.find((s) => s.id === id)!.label;
@@ -184,8 +185,8 @@ export function buildReport(input: ReportInput): ReportData {
       submitted: Object.values(input.gaps.completion).filter(Boolean).length,
       disagreements: input.gaps.disagreements.map((d) => ({ topic: d.topic, spread: d.spread, severity: d.severity })),
       misperceptions: input.gaps.misperceptions.map((m) => ({
-        observer: STAKEHOLDER_LABELS[m.observer],
-        target: STAKEHOLDER_LABELS[m.target],
+        observer: seatName(m.observer, baseline.heirs),
+        target: seatName(m.target, baseline.heirs),
         topic: m.topic,
         severity: m.severity,
       })),

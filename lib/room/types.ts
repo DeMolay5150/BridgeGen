@@ -1,5 +1,5 @@
-import type { StakeholderId } from "../simulator/alignment";
 import type { Severity } from "../simulator/types";
+import type { SeatId } from "./seats";
 
 export type TopicId =
   | "nextGenReady"
@@ -24,7 +24,7 @@ export interface RoomResponse {
   submitted: boolean;
 }
 
-export type RoomResponses = Partial<Record<StakeholderId, RoomResponse>>;
+export type RoomResponses = Partial<Record<SeatId, RoomResponse>>;
 
 /** Stakeholders' positions are far apart. Never says who holds which view. */
 export interface Disagreement {
@@ -39,15 +39,16 @@ export interface Disagreement {
 export interface Misperception {
   topicId: TopicId;
   topic: string;
-  observer: StakeholderId;
-  target: StakeholderId;
+  observer: SeatId;
+  target: SeatId;
   /** Distance between the prediction and the actual answer. */
   gap: number;
   severity: Exclude<Severity, "positive">;
 }
 
 export interface RoomGaps {
-  completion: Record<StakeholderId, boolean>;
+  /** Every seat expected to answer, in room order (see `orderSeats`), and whether it has. */
+  completion: Partial<Record<SeatId, boolean>>;
   disagreements: Disagreement[];
   misperceptions: Misperception[];
 }

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { detectGaps } from "@/lib/room/gaps";
 import { authorize, json, loadResponses, notFound } from "@/lib/room/server";
+import { getServerClient } from "@/lib/supabase/server";
 
 /**
  * The facilitator's view of the room: completion plus disagreements and
@@ -11,5 +12,12 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/compani
   const { id } = await ctx.params;
   const access = await authorize(id, "room:view_gaps");
   if (!access) return notFound();
-  return json(detectGaps(await loadResponses(access.company.id)));
+  // Heirs who have a link but haven't answered still count as outstanding.
+  const supabase = (await getServerClient())!;
+  const { data: invites } = await supabase
+    .from("room_invites")
+    .select("stakeholder")
+    .eq("company_id", access.company.id)
+    .returns<{ stakeholder: string }[]>();
+  return json(detectGaps(await loadResponses(access.company.id), invites?.map((i) => i.stakeholder) ?? []));
 }

@@ -7,6 +7,7 @@ import { QuestionnaireForm } from "./questionnaire";
 
 interface Invite {
   companyName: string;
+  /** "the Founder", or an heir's name. */
   stakeholderLabel: string;
   targetLabel: string;
   response: RoomResponse;
@@ -73,7 +74,7 @@ export function RespondForm({ token }: { token: string }) {
       <header className="grid gap-2">
         <p className="font-mono text-xs uppercase tracking-widest text-metric">Decision Room · {invite.companyName}</p>
         <h1 className="font-heading text-2xl font-semibold tracking-tight text-white">
-          Your private view, as the {invite.stakeholderLabel}
+          Your private view, as {invite.stakeholderLabel}
         </h1>
       </header>
       <QuestionnaireForm

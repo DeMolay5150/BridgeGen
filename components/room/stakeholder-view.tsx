@@ -19,7 +19,9 @@ import { formatMoney, formatMultiple, formatPercent } from "@/lib/simulator/form
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import type { Severity, SimulationResult } from "@/lib/simulator/types";
 import { cn } from "@/lib/utils";
+import { heirSeat, seatPhrase, type SeatId } from "@/lib/room/seats";
 import { useInviteStatus } from "@/lib/room/use-room-api";
+import { isSingleDefaultHeir, normalizeHeirs } from "@/lib/simulator/heirs";
 import { InvitePanel } from "./invite-panel";
 import { Questionnaire } from "./questionnaire";
 
@@ -92,6 +94,18 @@ export function StakeholderView({ stakeholder }: { stakeholder: StakeholderId })
   const hurting = drivers.filter((d) => d.impact <= -MATERIAL_IMPACT).slice(-2).reverse();
   const mine = priorities[stakeholder];
   const totalImportance = PRIORITY_KEYS.reduce((sum, key) => sum + mine[key], 0);
+
+  // Named heirs each get their own private link (ADR-001 stage 4). The shared
+  // next-gen link stays visible only if one was already sent.
+  const heirs = normalizeHeirs(baseline.heirs);
+  const perHeir = stakeholder === "nextGen" && !isSingleDefaultHeir(heirs);
+  const statusOf = (seat: SeatId) => invites.data?.find((s) => s.stakeholder === seat);
+  const linkSeats: SeatId[] = perHeir
+    ? [
+        ...(statusOf("nextGen")?.invitedAt ? (["nextGen"] as SeatId[]) : []),
+        ...heirs.map((h) => heirSeat(h.id)).filter((seat) => seat !== null),
+      ]
+    : [stakeholder];
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
@@ -174,12 +188,18 @@ export function StakeholderView({ stakeholder }: { stakeholder: StakeholderId })
       </div>
 
       {companyId ? (
-        <InvitePanel
-          companyId={companyId}
-          stakeholder={stakeholder}
-          status={invites.data?.find((s) => s.stakeholder === stakeholder)}
-          onChanged={invites.refresh}
-        />
+        <div className="grid gap-6">
+          {linkSeats.map((seat) => (
+            <InvitePanel
+              key={seat}
+              companyId={companyId}
+              seat={seat}
+              who={seatPhrase(seat, heirs)}
+              status={statusOf(seat)}
+              onChanged={invites.refresh}
+            />
+          ))}
+        </div>
       ) : (
         <Questionnaire stakeholder={stakeholder} />
       )}

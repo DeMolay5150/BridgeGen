@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { StakeholderId } from "../simulator/alignment";
+import type { SeatId } from "./seats";
 import type { RoomGaps } from "./types";
 
 export interface InviteStatus {
-  stakeholder: StakeholderId;
+  stakeholder: SeatId;
   invitedAt: string | null;
   submitted: boolean;
 }
@@ -59,7 +59,7 @@ export function useInviteStatus(companyId: string | null) {
 /** Creates or replaces a stakeholder's private link. The URL is shown once; refusals carry the server's reason. */
 export async function createInvite(
   companyId: string,
-  stakeholder: StakeholderId,
+  stakeholder: SeatId,
 ): Promise<{ url: string } | { error: string }> {
   const res = await fetch(`/api/companies/${companyId}/invites`, {
     method: "POST",

@@ -29,7 +29,7 @@ describe("parseBody", () => {
 });
 
 describe("rowsToResponses", () => {
-  const rows = Object.entries(DEMO_RESPONSES).map(([stakeholder, r]) => ({ stakeholder, ...r }));
+  const rows = Object.entries(DEMO_RESPONSES).map(([stakeholder, r]) => ({ stakeholder, ...r! }));
 
   it("rebuilds responses from stored rows, matching in-memory gap detection", () => {
     expect(detectGaps(rowsToResponses(rows))).toEqual(detectGaps(DEMO_RESPONSES));

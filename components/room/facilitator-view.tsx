@@ -9,13 +9,16 @@ import { ActivityCard } from "./activity-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { detectGaps } from "@/lib/room/gaps";
+import { orderSeats, seatName, seatPhrase, type SeatId } from "@/lib/room/seats";
 import type { RoomGaps } from "@/lib/room/types";
 import { useRoomGaps } from "@/lib/room/use-room-api";
-import { STAKEHOLDER_IDS, STAKEHOLDER_LABELS, scoreScenario } from "@/lib/simulator/alignment";
+import { scoreScenario } from "@/lib/simulator/alignment";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { cn } from "@/lib/utils";
 
 const EMPTY_GAPS: RoomGaps = detectGaps({});
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 const SEVERITY_STYLES = {
   caution: "text-caution bg-caution/10",
@@ -40,7 +43,9 @@ export function FacilitatorView() {
     () => scoreScenario(baseline, scenario, governanceScore, priorities),
     [baseline, scenario, governanceScore, priorities],
   );
-  const submittedCount = STAKEHOLDER_IDS.filter((id) => gaps.completion[id]).length;
+  // The four stakeholders, or heirs seat by seat once they have their own links.
+  const seats = orderSeats(Object.keys(gaps.completion) as SeatId[]);
+  const submittedCount = seats.filter((id) => gaps.completion[id]).length;
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
@@ -48,18 +53,18 @@ export function FacilitatorView() {
         <Card>
           <CardHeader>
             <CardTitle>Room status</CardTitle>
-            <CardDescription>{submittedCount} of 4 stakeholders have submitted</CardDescription>
+            <CardDescription>{submittedCount} of {seats.length} stakeholders have submitted</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <ul className="grid gap-2">
-              {STAKEHOLDER_IDS.map((id) => (
+              {seats.map((id) => (
                 <li key={id} className="flex items-center gap-2 text-sm">
                   {gaps.completion[id] ? (
                     <CheckCircle2 className="size-4 text-positive" aria-hidden />
                   ) : (
                     <Circle className="size-4 text-muted-foreground" aria-hidden />
                   )}
-                  {STAKEHOLDER_LABELS[id]}
+                  {seatName(id, baseline.heirs)}
                   <span className="sr-only">{gaps.completion[id] ? "submitted" : "not yet submitted"}</span>
                 </li>
               ))}
@@ -156,11 +161,11 @@ export function FacilitatorView() {
               <ul className="grid gap-2">
                 {gaps.misperceptions.map((m) => (
                   <li
-                    key={`${m.observer}-${m.topicId}`}
+                    key={`${m.observer}-${m.target}-${m.topicId}`}
                     className={cn("grid gap-0.5 rounded-lg px-3 py-2", SEVERITY_STYLES[m.severity])}
                   >
                     <span className="text-sm font-medium">
-                      The {STAKEHOLDER_LABELS[m.observer]} misreads the {STAKEHOLDER_LABELS[m.target]}
+                      {capitalize(seatPhrase(m.observer, baseline.heirs))} misreads {seatPhrase(m.target, baseline.heirs)}
                     </span>
                     <span className="text-xs text-foreground/70">
                       “{m.topic}”: {m.severity === "critical" ? "a major" : "a meaningful"} gap between

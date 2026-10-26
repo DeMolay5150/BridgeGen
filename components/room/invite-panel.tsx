@@ -5,24 +5,26 @@ import { Check, Copy, Link2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import type { SeatId } from "@/lib/room/seats";
 import { createInvite, type InviteStatus } from "@/lib/room/use-room-api";
-import { STAKEHOLDER_LABELS, type StakeholderId } from "@/lib/simulator/alignment";
 
 const dateLabel = (iso: string) => new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(iso));
 
 /** Saved-company mode: the stakeholder answers privately on their own device via a link. */
 export function InvitePanel({
   companyId,
-  stakeholder,
+  seat,
+  who,
   status,
   onChanged,
 }: {
   companyId: string;
-  stakeholder: StakeholderId;
+  seat: SeatId;
+  /** Who the link is for, as running text: "the Founder", or an heir's name. */
+  who: string;
   status: InviteStatus | undefined;
   onChanged: () => void;
 }) {
-  const label = STAKEHOLDER_LABELS[stakeholder];
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -31,7 +33,7 @@ export function InvitePanel({
   const generate = async () => {
     setBusy(true);
     setError(null);
-    const result = await createInvite(companyId, stakeholder);
+    const result = await createInvite(companyId, seat);
     setBusy(false);
     if ("url" in result) {
       setUrl(result.url);
@@ -55,10 +57,10 @@ export function InvitePanel({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Send className="size-4 text-muted-foreground" aria-hidden />
-          Private questionnaire
+          Private questionnaire{who.startsWith("the ") ? "" : ` · ${who}`}
         </CardTitle>
         <CardDescription>
-          Send the {label} a private link. They answer on their own device; you&apos;ll only ever see
+          Send {who} a private link. They answer on their own device; you&apos;ll only ever see
           where views diverge, never their answers.
         </CardDescription>
       </CardHeader>
@@ -79,11 +81,11 @@ export function InvitePanel({
         {url && (
           <div className="grid gap-2 rounded-lg border border-border p-3">
             <span className="text-xs text-muted-foreground">
-              Copy this link now: it won&apos;t be shown again. Anyone with it can see and change the {label}&apos;s
+              Copy this link now: it won&apos;t be shown again. Anyone with it can see and change {who}&apos;s
               answers, so send it only to them and don&apos;t open it yourself.
             </span>
             <div className="flex gap-2">
-              <Input readOnly value={url} aria-label={`Private link for the ${label}`} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+              <Input readOnly value={url} aria-label={`Private link for ${who}`} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
               <Button variant="outline" size="sm" onClick={copy}>
                 {copied ? <Check data-icon="inline-start" /> : <Copy data-icon="inline-start" />}
                 {copied ? "Copied" : "Copy"}
@@ -93,7 +95,7 @@ export function InvitePanel({
         )}
 
         <p role="status" className="sr-only">
-          {busy ? "Creating the link…" : copied ? "Link copied." : url ? `New private link for the ${label} is ready to copy.` : ""}
+          {busy ? "Creating the link…" : copied ? "Link copied." : url ? `New private link for ${who} is ready to copy.` : ""}
         </p>
         <Button
           variant={status?.invitedAt ? "outline" : "default"}

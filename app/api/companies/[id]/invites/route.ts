@@ -2,12 +2,14 @@ import type { NextRequest } from "next/server";
 import { inviteBodySchema } from "@/lib/room/schema";
 import { recordAudit } from "@/lib/audit/server";
 import { allows, authorize, json, loadResponses, notFound, readBody, siteOrigin } from "@/lib/room/server";
-import { generateToken, hashToken } from "@/lib/room/tokens";
+import { expectedSeats } from "@/lib/room/gaps";
+import { orderSeats } from "@/lib/room/seats";
 import { STAKEHOLDER_IDS } from "@/lib/simulator/alignment";
+import { generateToken, hashToken } from "@/lib/room/tokens";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { getServerClient } from "@/lib/supabase/server";
 
-/** Invite status per stakeholder: whether a link exists and whether they've submitted. Never answers. */
+/** Invite status per seat (stakeholders and any heir with a link): link issued, and submitted. Never answers. */
 export async function GET(_request: NextRequest, ctx: RouteContext<"/api/companies/[id]/invites">) {
   const { id } = await ctx.params;
   const access = await authorize(id, "room:view_gaps");
@@ -22,8 +24,10 @@ export async function GET(_request: NextRequest, ctx: RouteContext<"/api/compani
     .returns<{ stakeholder: string; created_at: string }[]>();
   const responses = await loadResponses(company.id);
 
+  // Every stakeholder, plus each heir seat that has a link or answers.
+  const seats = expectedSeats(responses, invites?.map((i) => i.stakeholder) ?? []);
   return json({
-    stakeholders: STAKEHOLDER_IDS.map((stakeholder) => ({
+    stakeholders: orderSeats([...STAKEHOLDER_IDS, ...seats]).map((stakeholder) => ({
       stakeholder,
       invitedAt: invites?.find((i) => i.stakeholder === stakeholder)?.created_at ?? null,
       submitted: responses[stakeholder]?.submitted === true,

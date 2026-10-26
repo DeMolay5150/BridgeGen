@@ -159,6 +159,16 @@ await as("service", "insert into room_responses (company_id, stakeholder) values
 check("owner can't read raw answers", failed(await as("alice", "select * from room_responses")));
 check("member can't read raw answers", failed(await as("carol", "select * from room_responses")));
 
+// Per-heir seats (20261026090000): each named heir gets their own link and answers
+const heirLink = (seat, hash) => as("service", "insert into room_invites (company_id, stakeholder, token_hash) values ($1, $2, repeat($3, 64))", [companyId, seat, hash]);
+check("heir seats: two heirs each get a link", ok(await heirLink("nextGen:heir-ana", "c")) && ok(await heirLink("nextGen:heir-ben", "d")));
+check("heir seats: one link per heir", failed(await heirLink("nextGen:heir-ana", "e")));
+check("heir seats: malformed seats are refused", failed(await heirLink("nextGen:", "f")) && failed(await heirLink("nextGen:a b", "f")) && failed(await heirLink("advisor", "f")) && failed(await heirLink(`nextGen:${"x".repeat(41)}`, "f")));
+check("heir seats: a member can't mint an heir link directly", failed(await as("carol", "insert into room_invites (company_id, stakeholder, token_hash) values ($1, 'nextGen:heir-cy', repeat('9', 64))", [companyId])));
+check("heir seats: answers are stored per heir", ok(await as("service", "insert into room_responses (company_id, stakeholder) values ($1, 'nextGen:heir-ana'), ($1, 'nextGen:heir-ben')", [companyId])));
+check("heir seats: answers stay server-only", failed(await as("carol", "select * from room_responses where stakeholder like 'nextGen:%'")));
+check("heir seats: malformed answer seats are refused", failed(await as("service", "insert into room_responses (company_id, stakeholder) values ($1, 'heir-ana')", [companyId])));
+
 // Roles
 check("owner promotes carol to admin", (await as("alice", "update firm_members set role = 'admin' where firm_id = $1 and user_id = $2 returning role", [firmId, ids.carol])).rows.length === 1);
 check("admin can't grant owner", failed(await as("carol", "insert into firm_members (firm_id, user_id, role) values ($1, $2, 'owner')", [firmId, ids.bob])));

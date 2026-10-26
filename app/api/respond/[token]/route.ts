@@ -2,19 +2,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { recordAudit } from "@/lib/audit/server";
 import { clientIp, overLimit, type LimitKind } from "@/lib/ratelimit/server";
 import { EMPTY_RESPONSE } from "@/lib/room/response";
-import { responseBodySchema, stakeholderSchema, tokenSchema } from "@/lib/room/schema";
+import { responseBodySchema, tokenSchema } from "@/lib/room/schema";
+import { isHeirSeat, seatPhrase, seatSchema, stakeholderOf } from "@/lib/room/seats";
 import { inviteForToken, json, notFound, readBody } from "@/lib/room/server";
 import { rowsToResponses, type ResponseRow } from "@/lib/room/server-logic";
 import { hashToken } from "@/lib/room/tokens";
 import { PREDICTION_TARGET } from "@/lib/room/topics";
 import { STAKEHOLDER_LABELS } from "@/lib/simulator/alignment";
+import { normalizeHeirs } from "@/lib/simulator/heirs";
 import { getAdminClient } from "@/lib/supabase/admin";
 
 async function resolve(ctx: RouteContext<"/api/respond/[token]">) {
   const { token } = await ctx.params;
   if (!tokenSchema.safeParse(token).success) return null;
   const invite = await inviteForToken(token);
-  const stakeholder = stakeholderSchema.safeParse(invite?.stakeholder);
+  const stakeholder = seatSchema.safeParse(invite?.stakeholder);
   return invite && stakeholder.success
     ? { companyId: invite.company_id, stakeholder: stakeholder.data, tokenHash: hashToken(token) }
     : null;
@@ -43,9 +45,11 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/respond/
 
   const { data: company } = await getAdminClient()
     .from("companies")
-    .select("name")
+    .select("name, baseline")
     .eq("id", invite.companyId)
-    .maybeSingle<{ name: string }>();
+    .maybeSingle<{ name: string; baseline: { heirs?: unknown } | null }>();
+  // An heir's own link greets them by name; nothing else about the family is sent.
+  const heirs = Array.isArray(company?.baseline?.heirs) ? normalizeHeirs(company.baseline.heirs) : [];
   // Only answers saved through this very link: one query, so a save through a
   // newer link can't land between reading the answers and checking whose they are.
   const { data: own } = await getAdminClient()
@@ -60,8 +64,9 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/respond/
   return json({
     companyName: company?.name ?? "",
     stakeholder: invite.stakeholder,
-    stakeholderLabel: STAKEHOLDER_LABELS[invite.stakeholder],
-    targetLabel: STAKEHOLDER_LABELS[PREDICTION_TARGET[invite.stakeholder]],
+    // "the Founder", or the heir's own name.
+    stakeholderLabel: seatPhrase(invite.stakeholder, heirs, isHeirSeat(invite.stakeholder)),
+    targetLabel: STAKEHOLDER_LABELS[PREDICTION_TARGET[stakeholderOf(invite.stakeholder)]],
     response: response ?? EMPTY_RESPONSE,
   });
 }

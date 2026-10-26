@@ -1,5 +1,6 @@
 import type { z } from "zod";
-import { MAX_BODY_BYTES, answersSchema, stakeholderSchema } from "./schema";
+import { MAX_BODY_BYTES, answersSchema } from "./schema";
+import { seatSchema } from "./seats";
 import type { RoomResponses } from "./types";
 
 /** A `room_responses` row as stored. */
@@ -50,7 +51,7 @@ export function parseBody<T>(text: string, schema: z.ZodType<T>): ParsedBody<T> 
 export function rowsToResponses(rows: ResponseRow[]): RoomResponses {
   const responses: RoomResponses = {};
   for (const row of rows) {
-    const stakeholder = stakeholderSchema.safeParse(row.stakeholder);
+    const stakeholder = seatSchema.safeParse(row.stakeholder);
     const positions = answersSchema.safeParse(row.positions);
     const predictions = answersSchema.safeParse(row.predictions);
     if (!stakeholder.success || !positions.success || !predictions.success || typeof row.submitted !== "boolean") continue;
