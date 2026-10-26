@@ -138,8 +138,17 @@ describe.skipIf(!configured)("row-level security (live Supabase project)", () =>
     });
 
     it("shares the firm's companies with a member, who can edit but not delete them", async () => {
-      const { error } = await alice.from("firm_members").insert({ firm_id: firmId, user_id: userIds[2] });
+      // Colleagues join only by accepting an invitation (20261025100000): even an owner can't add one directly.
+      const { error: direct } = await alice.from("firm_members").insert({ firm_id: firmId, user_id: userIds[2] });
+      expect(direct?.code).toBe("42501");
+      const invite = generateToken();
+      const { error: inviteError } = await alice
+        .from("firm_invites")
+        .insert({ firm_id: firmId, email: emails.carol, role: "member", token_hash: hashToken(invite) });
+      expect(inviteError).toBeNull();
+      const { data: joined, error } = await carol.rpc("accept_firm_invite", { invite_hash: hashToken(invite) });
       expect(error).toBeNull();
+      expect(joined).toBe(firmId);
       const { data } = await carol.from("companies").select("id").eq("id", companyId);
       expect(data).toHaveLength(1);
       const { error: updateError } = await carol.from("companies").update({ name: `Shared ${run}` }).eq("id", companyId);
@@ -234,10 +243,24 @@ describe.skipIf(!configured)("row-level security (live Supabase project)", () =>
     it("serves a valid invite only its own stakeholder's answers", async () => {
       const token = generateToken();
       await admin.from("room_invites").insert({ company_id: companyId, stakeholder: "founder", token_hash: hashToken(token) });
-      const res = await fetch(`${baseUrl}/api/respond/${token}`);
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.stakeholder).toBe("founder");
+      const read = async () => {
+        const res = await fetch(`${baseUrl}/api/respond/${token}`);
+        expect(res.status).toBe(200);
+        return res.json();
+      };
+      // Answers saved before this link existed (the direct insert above) stay hidden from it (finding D1).
+      const fresh = await read();
+      expect(fresh.stakeholder).toBe("founder");
+      expect(fresh.response.positions).toEqual({});
+      // Answers saved through the link are served back to it, and only the founder's. A draft, so the
+      // end-to-end test below still counts exactly one submission per stakeholder in the audit trail.
+      const save = await fetch(`${baseUrl}/api/respond/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...DEMO_RESPONSES.founder, submitted: false }),
+      });
+      expect(save.status).toBe(200);
+      const body = await read();
       expect(body.response.positions).toEqual(DEMO_RESPONSES.founder!.positions);
       expect(JSON.stringify(body)).not.toContain("nextGen\":{");
     });
