@@ -164,6 +164,7 @@ Decisions from the October sweep (`docs/sweep-2026-10-25.md` §6–7).
 - [x] **ADR-001 multi-heir, staged.**
   - Stage 1: `heirs: { id, name, share, active }[]` with shares summing to 1; `Holders.nextGen` stays the sum. Persistence default-merges old rows to one heir (share 1), snapshot test proves old companies simulate identically.
   - Stage 2: engine semantics — successor exit buys out the largest active heir; control shift when any one heir out-owns the founder; deadlock caution when the top two heirs tie and neither holds a majority of the heir block.
-  - Stage 3: UI to name heirs and split shares; per-heir wealth in the simulator. Stage 4 (later): stake-weighted heir alignment and per-heir Decision Room seats.
+  - Stage 3: UI to name heirs and split shares; per-heir wealth in the simulator.
+  - Stage 4 (done 2026-10-26): stake-weighted heir alignment (heirs outside the business weigh succession as cash; each heir is a seat in the disagreement penalty) and a private Decision Room link per named heir (`nextGen:<heir id>` seats, expand-only CHECK migration).
   - Built on `Baseline.heirs` rather than the scenario (see ADR-001 "As built").
 - [ ] Verify: type-check, lint, unit tests, migration checks, build. Then resume the a11y audit (phase 2) on "go".

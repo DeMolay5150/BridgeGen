@@ -27,3 +27,7 @@ This file tracks technical mistakes, failed builds, and architectural correction
 ## 2026-10-25: accessibility pass
 - Base UI slider: focus lands on the hidden `<input type=range>` inside the thumb, so `focus-visible:` on the thumb never matches. Use `has-[:focus-visible]:` on the thumb, and pass `getAriaValueText` to `Slider.Thumb` (not Root), or screen readers read raw fractions.
 - Never put `aria-live` on output that changes on every slider step. Announce a settled summary instead (`components/settled-status.tsx`).
+
+## 2026-10-26: heirs stage 4
+- To give a parent row several children (one seat per heir) without breaking the code already deployed, encode the child in the existing key column (`nextGen:<heir id>`) and only widen its CHECK. Replacing the unique key would have broken every live `upsert(..., { onConflict: "company_id,stakeholder" })` between the migration and the deploy.
+- Writing files from Python on Windows: open with `newline=''`, or every line gets CRLF. Escape sequences in generated TypeScript must survive two layers of quoting; write such scripts to a file rather than a shell heredoc.
