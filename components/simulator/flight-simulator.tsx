@@ -60,7 +60,6 @@ export function FlightSimulator() {
           <ScenarioControls />
           {/* Below lg the results sit under every input; keep the headline in view while levers move. */}
           <div
-            aria-live="polite"
             className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-border bg-card/95 px-4 py-3 text-sm shadow-lg backdrop-blur lg:hidden"
           >
             <span>
@@ -69,7 +68,7 @@ export function FlightSimulator() {
                 {formatMoney(result.equityValue)}
               </span>
             </span>
-            <a href="#results" className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+            <a href="#results" className="inline-flex min-h-6 items-center text-muted-foreground underline underline-offset-4 hover:text-foreground">
               See all results
             </a>
           </div>

@@ -62,7 +62,7 @@ export function SiteNav() {
         aria-label="Main"
         className="mx-auto flex min-h-14 w-full max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 md:h-14 md:flex-nowrap md:py-0 md:px-8"
       >
-        <Link href="/" className="shrink-0 font-mono text-xs uppercase tracking-widest text-metric">
+        <Link href="/" className="inline-flex min-h-6 shrink-0 items-center font-mono text-xs uppercase tracking-widest text-metric">
           BridgeGen
         </Link>
         {/* Phones: the links get a full-width row of their own under the logo and account menu. */}

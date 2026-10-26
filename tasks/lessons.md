@@ -23,3 +23,7 @@ This file tracks technical mistakes, failed builds, and architectural correction
 - Validate saved JSON per field, not per section: one NaN (stored as null) used to reset a whole section to the demo figures, and the autosave then wrote the defaults over the client's data.
 - "No change" scenarios must reproduce today exactly. Clamping the neutral scenario to a slider range silently modelled a paydown for companies already levered above the slider max; derive bounds from the company (`leverageRange`).
 - Run `pnpm audit --prod` in every sweep; next@16.4.0 carried two critical RCE advisories that no test would catch.
+
+## 2026-10-25: accessibility pass
+- Base UI slider: focus lands on the hidden `<input type=range>` inside the thumb, so `focus-visible:` on the thumb never matches. Use `has-[:focus-visible]:` on the thumb, and pass `getAriaValueText` to `Slider.Thumb` (not Root), or screen readers read raw fractions.
+- Never put `aria-live` on output that changes on every slider step. Announce a settled summary instead (`components/settled-status.tsx`).

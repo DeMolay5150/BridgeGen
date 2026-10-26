@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SettledStatus } from "@/components/settled-status";
 import { cn } from "@/lib/utils";
 import { DeltaBadge } from "@/components/delta-badge";
 import { ExplainButton } from "@/components/explain/explain-button";
@@ -14,6 +15,12 @@ import { COVERAGE_CAUTION, COVERAGE_CRITICAL } from "@/lib/simulator/engine";
 import { moneyDelta, multipleDelta } from "@/lib/domain/delta";
 import { formatMoney, formatMultiple, formatPercent } from "@/lib/simulator/format";
 import type { Baseline, Holders, Scenario, Severity, SimulationResult } from "@/lib/simulator/types";
+
+const SEVERITY_LABEL: Record<Severity, string> = {
+  positive: "OK",
+  caution: "Caution",
+  critical: "Critical",
+};
 
 const SEVERITY_STYLES: Record<Severity, string> = {
   positive: "text-positive bg-positive/10",
@@ -215,14 +222,20 @@ export function ResultsPanel({
           <CardTitle>Risk signals</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="grid gap-2" aria-live="polite">
+          <ul className="grid gap-2">
             {result.signals.map((signal) => (
               <li key={signal.id} className={cn("grid gap-0.5 rounded-lg px-3 py-2", SEVERITY_STYLES[signal.severity])}>
-                <span className="text-sm font-medium">{signal.title}</span>
+                <span className="text-sm font-medium">
+                  <span className="mr-2 font-mono text-xs uppercase tracking-wider">{SEVERITY_LABEL[signal.severity]}</span>
+                  {signal.title}
+                </span>
                 <span className="text-sm text-foreground/85">{signal.detail}</span>
               </li>
             ))}
           </ul>
+          <SettledStatus
+            text={`Risk signals: ${result.signals.map((s) => `${SEVERITY_LABEL[s.severity]}, ${s.title}`).join("; ")}.`}
+          />
         </CardContent>
       </Card>
     </div>

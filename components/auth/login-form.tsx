@@ -42,7 +42,7 @@ export function LoginForm() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Sign-in isn&apos;t available in this demo</CardTitle>
+          <CardTitle as="h1">Sign-in isn&apos;t available in this demo</CardTitle>
           <CardDescription>
             Everything works without an account. Your changes just aren&apos;t saved between visits.
           </CardDescription>
@@ -89,7 +89,7 @@ export function LoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{mode === "signIn" ? "Sign in" : "Create your advisor account"}</CardTitle>
+        <CardTitle as="h1">{mode === "signIn" ? "Sign in" : "Create your advisor account"}</CardTitle>
         <CardDescription>Save client companies and run confidential Decision Rooms.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-5">

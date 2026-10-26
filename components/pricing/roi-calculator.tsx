@@ -64,7 +64,7 @@ export function RoiCalculator() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your numbers</CardTitle>
+        <CardTitle as="h3">Your numbers</CardTitle>
         <CardDescription>Placeholders shown; replace them with your own practice.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 md:grid-cols-2">
@@ -83,27 +83,25 @@ export function RoiCalculator() {
             />
           </div>
         </div>
-        <dl className="grid content-start gap-4 rounded-lg border border-border p-4" aria-live="polite">
-          <div className="grid gap-0.5">
+        <dl className="grid grid-cols-2 content-start gap-4 rounded-lg border border-border p-4" aria-live="polite">
+          <div className="col-span-2 grid gap-0.5">
             <dt className="text-xs text-muted-foreground">Return on the plan</dt>
             <dd className="font-mono text-4xl text-positive tabular-nums">
               {roi.returnMultiple === null ? "—" : `${roi.returnMultiple.toFixed(1)}×`}
             </dd>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-0.5">
-              <dt className="text-xs text-muted-foreground">Your annual upside</dt>
-              <dd className="font-mono text-metric tabular-nums">{formatUsd(roi.annualUpside)}</dd>
-            </div>
-            <div className="grid gap-0.5">
-              <dt className="text-xs text-muted-foreground">Plan, per year</dt>
-              <dd className="font-mono tabular-nums">
-                {plan === "enterprise" ? "from " : ""}
-                {formatUsd(roi.annualPrice)}
-              </dd>
-            </div>
+          <div className="grid gap-0.5">
+            <dt className="text-xs text-muted-foreground">Your annual upside</dt>
+            <dd className="font-mono text-metric tabular-nums">{formatUsd(roi.annualUpside)}</dd>
           </div>
           <div className="grid gap-0.5">
+            <dt className="text-xs text-muted-foreground">Plan, per year</dt>
+            <dd className="font-mono tabular-nums">
+              {plan === "enterprise" ? "from " : ""}
+              {formatUsd(roi.annualPrice)}
+            </dd>
+          </div>
+          <div className="col-span-2 grid gap-0.5">
             <dt className="text-xs text-muted-foreground">Break-even</dt>
             <dd className="text-sm">
               {roi.breakEvenEngagements === null

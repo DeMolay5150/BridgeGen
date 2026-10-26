@@ -29,7 +29,7 @@ export function ShockCard({ shock }: { shock: ShockResult }) {
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="grid gap-1">
-            <CardTitle>{shock.name}</CardTitle>
+            <CardTitle as="h3">{shock.name}</CardTitle>
             <CardDescription>{shock.description}</CardDescription>
           </div>
           <div className="flex shrink-0 items-center gap-1">

@@ -26,7 +26,7 @@ export function PresenceBar({ status, peers }: { status: LiveStatus; peers: Peer
   return (
     <div className="flex items-center gap-3" aria-live="polite">
       <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <span className={cn("size-1.5 rounded-full", status === "live" ? "animate-pulse bg-positive" : "bg-caution")} aria-hidden />
+        <span className={cn("size-1.5 rounded-full", status === "live" ? "animate-pulse bg-positive motion-reduce:animate-none" : "bg-caution")} aria-hidden />
         {status === "live" ? (peers.length ? "Live" : "Live · only you") : "Connecting…"}
       </span>
       {peers.length > 0 && (

@@ -65,7 +65,7 @@ export function StatementTable({
           {copied === "done" ? "Copied" : copied === "failed" ? "Copy blocked" : "Copy to Excel"}
         </Button>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div tabIndex={0} role="region" aria-label={`${title}, scrolls sideways`} className="overflow-x-auto rounded-lg border border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         <table className="w-full min-w-[52rem] border-collapse text-xs">
           <caption className="sr-only">{title}, $ millions by year</caption>
           <thead>

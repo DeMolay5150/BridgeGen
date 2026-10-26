@@ -96,7 +96,7 @@ export function RedTeam() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className={cn("text-sm font-medium", fragility.tone)}>{fragility.text}</p>
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" className="overflow-x-auto rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label="Breaking points, scrolls sideways">
             <table className="w-full min-w-[28rem] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
@@ -113,6 +113,9 @@ export function RedTeam() {
                     <td className="py-2 pr-4 text-muted-foreground">{p.driver} falls</td>
                     <td className={cn("py-2 pr-4 text-right font-mono tabular-nums", TONE[p.severity])}>
                       {thresholdLabel(p.threshold)}
+                      {p.severity !== "positive" && (
+                        <span className="ml-1.5 font-sans text-xs">{p.severity === "critical" ? "critical" : "caution"}</span>
+                      )}
                     </td>
                     <td className="py-2 text-right font-mono text-muted-foreground tabular-nums">
                       {thresholdLabel(todayById[p.id] ?? null)}

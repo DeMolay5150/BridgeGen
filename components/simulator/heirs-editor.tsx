@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ function HeirRow({
   canRemove,
   onChange,
   onRemove,
+  removeRef,
 }: {
   heir: Heir;
   index: number;
@@ -28,6 +29,7 @@ function HeirRow({
   canRemove: boolean;
   onChange: (patch: Partial<Heir>) => void;
   onRemove: () => void;
+  removeRef: (button: HTMLButtonElement | null) => void;
 }) {
   const nameId = useId();
   const shareId = useId();
@@ -91,8 +93,9 @@ function HeirRow({
         variant="ghost"
         size="icon"
         className="row-start-1 col-start-3 size-10 sm:col-start-4"
+        ref={removeRef}
         disabled={!canRemove}
-        aria-label={`Remove ${label}`}
+        aria-label={`Remove heir ${index + 1}: ${label}`}
         onClick={onRemove}
       >
         <X />
@@ -106,6 +109,8 @@ export function HeirsEditor() {
   const stored = useSimulatorStore((s) => s.baseline.heirs);
   const setBaseline = useSimulatorStore((s) => s.setBaseline);
   const headingId = useId();
+  const removeButtons = useRef(new Map<string, HTMLButtonElement>());
+  const addButton = useRef<HTMLButtonElement>(null);
   const heirs = stored && stored.length > 0 ? stored : DEFAULT_HEIRS;
   const normalized = normalizeHeirs(heirs);
   const total = heirs.reduce((sum, h) => sum + (Number.isFinite(h.share) && h.share > 0 ? h.share : 0), 0);
@@ -114,6 +119,16 @@ export function HeirsEditor() {
   const save = (next: Heir[]) => setBaseline({ heirs: next });
   const update = (index: number, patch: Partial<Heir>) =>
     save(heirs.map((h, i) => (i === index ? { ...h, ...patch } : h)));
+  // The removed row takes its button with it: keep keyboard focus nearby, not back at the top of the page.
+  const remove = (index: number) => {
+    const rest = heirs.filter((_, j) => j !== index);
+    const next = rest[Math.max(0, index - 1)];
+    save(rest);
+    requestAnimationFrame(() => {
+      const target = rest.length > 1 && next ? removeButtons.current.get(next.id) : null;
+      (target ?? addButton.current)?.focus();
+    });
+  };
 
   return (
     <section className="col-span-2 grid gap-3 border-t border-border pt-4" aria-labelledby={headingId}>
@@ -135,17 +150,22 @@ export function HeirsEditor() {
             normalizedShare={normalized[i].share}
             canRemove={heirs.length > 1}
             onChange={(patch) => update(i, patch)}
-            onRemove={() => save(heirs.filter((_, j) => j !== i))}
+            onRemove={() => remove(i)}
+            removeRef={(button) => {
+              if (button) removeButtons.current.set(heir.id, button);
+              else removeButtons.current.delete(heir.id);
+            }}
           />
         ))}
       </ul>
-      {scaled && (
-        <p role="status" className="text-xs text-caution">
-          Shares add up to {formatPercent(total)}, so they&apos;re scaled to 100%:{" "}
-          {normalized.map((h) => `${h.name} ${formatPercent(h.share)}`).join(", ")}.
-        </p>
-      )}
+      <p role="status" className="text-xs text-caution empty:hidden">
+        {scaled &&
+          `Shares add up to ${formatPercent(total)}, so they're scaled to 100%: ${normalized
+            .map((h) => `${h.name} ${formatPercent(h.share)}`)
+            .join(", ")}.`}
+      </p>
       <Button
+        ref={addButton}
         variant="outline"
         size="sm"
         className="w-fit"

@@ -17,7 +17,7 @@ export function DecisionRoom() {
   const live = useLiveRoom(view);
 
   return (
-    <div className="grid gap-8">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <header className="grid gap-2">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid gap-2">
@@ -40,7 +40,7 @@ export function DecisionRoom() {
           another's view. Explicit rather than relying on Base UI's exit transition, which only
           unmounts once animation frames run (not in background tabs).
         */}
-        <Tabs value={view} onValueChange={(next) => isView(next) && setView(next)} className="gap-6">
+        <Tabs value={view} onValueChange={(next) => isView(next) && setView(next)} className="min-w-0 gap-6">
           <div className="overflow-x-auto overflow-y-hidden">
             <TabsList>
               {STAKEHOLDER_IDS.map((id) => (

@@ -92,7 +92,18 @@ export function InvitePanel({
           </div>
         )}
 
-        <Button variant={status?.invitedAt ? "outline" : "default"} className="w-fit" disabled={busy} onClick={generate}>
+        <p role="status" className="sr-only">
+          {busy ? "Creating the link…" : copied ? "Link copied." : url ? `New private link for the ${label} is ready to copy.` : ""}
+        </p>
+        <Button
+          variant={status?.invitedAt ? "outline" : "default"}
+          className="w-fit"
+          // aria-disabled rather than disabled, so focus stays on the button while the link is created.
+          aria-disabled={busy}
+          onClick={() => {
+            if (!busy) void generate();
+          }}
+        >
           <Link2 data-icon="inline-start" />
           {busy ? "Creating…" : status?.invitedAt ? "Replace link" : "Create private link"}
         </Button>

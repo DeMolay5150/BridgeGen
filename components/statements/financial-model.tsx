@@ -149,7 +149,7 @@ export function FinancialModel() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Operating assumptions</CardTitle>
+            <CardTitle as="h3">Operating assumptions</CardTitle>
             <CardDescription>
               These inputs, growth included, also drive{" "}
               <Link href="/fork" className="text-foreground underline underline-offset-4">
@@ -231,7 +231,7 @@ export function FinancialModel() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Distribution of outcomes</CardTitle>
+          <CardTitle as="h3">Distribution of outcomes</CardTitle>
           <CardDescription>
             Year-{horizon} equity value across {simulation.settings.paths.toLocaleString("en-US")} simulated paths. The line
             marks the base case.

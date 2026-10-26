@@ -33,7 +33,7 @@ export default function Home() {
           <Button size="lg" className="h-11 px-5 text-base" nativeButton={false} render={<Link href="/simulator" />}>
             Start with the simulator
           </Button>
-          <Button size="lg" variant="outline" className="h-11 px-5 text-base" nativeButton={false} render={<Link href="/walkthrough" />}>
+          <Button size="lg" variant="outline" className="h-auto min-h-11 max-w-full shrink px-5 text-base whitespace-normal" nativeButton={false} render={<Link href="/walkthrough" />}>
             Watch the 3-minute walkthrough
           </Button>
         </div>

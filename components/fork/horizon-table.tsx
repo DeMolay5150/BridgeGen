@@ -103,7 +103,7 @@ export function HorizonTable({
         </ToggleGroup>
       </div>
 
-      <div className="overflow-x-auto">
+      <div tabIndex={0} role="region" className="overflow-x-auto rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label={`Year ${horizon} comparison, scrolls sideways`}>
         <table className="w-full min-w-[34rem] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">

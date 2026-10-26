@@ -33,6 +33,7 @@ export function SliderRow({ label, hint, value, range, display, onChange }: Slid
         max={range.max}
         step={range.step}
         value={[value]}
+        getAriaValueText={() => display}
         onValueChange={(next) => onChange(Array.isArray(next) ? next[0] : next)}
       />
     </div>
