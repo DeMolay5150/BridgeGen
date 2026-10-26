@@ -81,7 +81,7 @@ export function buildIcDeck(input: IcDeckInput): Deck {
       kpis: [
         { label: "Equity IRR, 10 years", value: statements.equityIrr === null ? "n/a" : formatPercent(statements.equityIrr, 1), tone: "positive" },
         { label: `Covenant breach odds, ${risk.settings.horizon} yrs`, value: formatPercent(risk.covenantBreachProbability, 1), tone: breachTone },
-        { label: "Governance value at risk", value: report.headlineKpis.find((k) => k.label === "Value at risk")!.value, tone: "caution" },
+        { label: "Governance Value at Risk", value: report.headlineKpis.find((k) => k.label === "Value at Risk")!.value, tone: "caution" },
       ],
     },
     {

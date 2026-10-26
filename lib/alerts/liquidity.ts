@@ -1,4 +1,4 @@
-import { PROJECTION_YEARS } from "../projection/model";
+import { PROJECTION_YEARS } from "../projection/horizon";
 import { neutralScenario } from "../simulator/defaults";
 import { COVERAGE_CAUTION, COVERAGE_CRITICAL, LEVERAGE_CAUTION, LEVERAGE_CRITICAL } from "../simulator/engine";
 import { formatMoney } from "../simulator/format";

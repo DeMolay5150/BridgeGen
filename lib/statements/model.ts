@@ -1,5 +1,5 @@
 import { amortize, irr, wacc } from "../finance";
-import { PROJECTION_YEARS } from "../projection/model";
+import { PROJECTION_YEARS } from "../projection/horizon";
 import { BASELINE_LIMITS, clamp, neutralScenario } from "../simulator/defaults";
 import { simulate } from "../simulator/engine";
 import type { ForkState } from "../projection/types";

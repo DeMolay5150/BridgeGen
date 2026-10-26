@@ -20,7 +20,7 @@ export type ReportSectionId = "capital" | "governance" | "redTeam" | "room";
 
 export const REPORT_SECTIONS: { id: ReportSectionId; label: string; hint: string }[] = [
   { id: "capital", label: "Capital allocation", hint: "Scenario vs. today, risk signals, stakeholder support" },
-  { id: "governance", label: "Governance debt", hint: "Score, value at risk, remediation plan" },
+  { id: "governance", label: "Governance debt", hint: "Score, Value at Risk, remediation plan" },
   { id: "redTeam", label: "Red Team stress test", hint: "Shock outcomes and the cheapest hedge" },
   { id: "room", label: "Decision Room", hint: "Disagreements and misperceptions; never anyone's answers" },
 ];
@@ -149,7 +149,7 @@ export function buildReport(input: ReportInput): ReportData {
       { label: "Equity value", value: formatMoney(result.equityValue) },
       { label: "Interest coverage", value: formatMultiple(result.interestCoverage) },
       { label: "Governance debt", value: `${Math.round(governance.score)}/100` },
-      { label: "Value at risk", value: formatMoney(result.governanceDebt) },
+      { label: "Value at Risk", value: formatMoney(result.governanceDebt) },
     ],
     capital: {
       scenario: describeScenario(scenario, governance.score),

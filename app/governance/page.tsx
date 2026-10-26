@@ -4,7 +4,7 @@ import { GovernanceCalculator } from "@/components/governance/governance-calcula
 export const metadata: Metadata = {
   title: "Governance Debt — BridgeGen",
   description:
-    "Quantify undocumented authority, missing board seats and informal voting rules as value at risk.",
+    "Quantify undocumented authority, missing board seats and informal voting rules as Value at Risk.",
 };
 
 export default function GovernancePage() {

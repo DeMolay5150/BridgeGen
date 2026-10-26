@@ -229,7 +229,7 @@ export function GovernanceCalculator() {
               <div className="grid gap-1">
                 <span className="font-mono text-2xl text-metric tabular-nums">{formatMoney(atRisk)}</span>
                 <span className="text-sm text-muted-foreground">
-                  Value at risk: up to a {formatPercent(MAX_GOVERNANCE_DISCOUNT)} discount on the{" "}
+                  Value at Risk: up to a {formatPercent(MAX_GOVERNANCE_DISCOUNT)} discount on the{" "}
                   <Link href="/simulator" className="text-foreground underline underline-offset-4">
                     simulator&apos;s
                   </Link>{" "}

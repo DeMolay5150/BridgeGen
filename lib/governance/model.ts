@@ -176,7 +176,7 @@ export function scoreGovernance(answers: GovernanceAnswers): GovernanceScore {
   return { score, items, categories };
 }
 
-/** Value at risk in USD millions: the governance discount a buyer or lender would apply. */
+/** Value at Risk in USD millions: the score-based governance discount a buyer or lender would apply. */
 export function governanceDebtValue(enterpriseValue: number, points: number): number {
   const ev = Number.isFinite(enterpriseValue) ? Math.max(enterpriseValue, 0) : 0;
   return (ev * MAX_GOVERNANCE_DISCOUNT * clamp(points, { min: 0, max: 100 })) / 100;

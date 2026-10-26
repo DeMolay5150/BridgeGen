@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { SliderRow } from "@/components/slider-row";
 import { ExplainButton } from "@/components/explain/explain-button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { liquidityAlerts } from "@/lib/alerts/liquidity";
 import { resolveBranch } from "@/lib/projection/branches";
 import { buildStatements, statementAssumptions } from "@/lib/statements/model";
 import { ASSUMPTION_RANGES, HORIZONS, project } from "@/lib/projection/model";
-import { formatMoney, formatPercent, formatSignedPercent } from "@/lib/simulator/format";
+import { formatMoney, formatSignedPercent } from "@/lib/simulator/format";
 import { selectGovernanceScore, useSimulatorStore } from "@/lib/simulator/store";
 import { BranchCard } from "./branch-card";
 import { HorizonTable } from "./horizon-table";
@@ -28,12 +29,12 @@ export function ForkTheFuture() {
   const branchA = resolveBranch(fork.a, context);
   const branchB = resolveBranch(fork.b, context);
 
+  // Both branches run on the three-statement model, the same one behind the liquidity alerts.
   // Eleven years of O(1) arithmetic per branch: cheap enough to recompute every render.
-  const a = project(baseline, branchA.scenario, branchA.governanceScore, fork.assumptions);
-  const b = project(baseline, branchB.scenario, branchB.governanceScore, fork.assumptions);
-
-  // Same engine as the Red Team liquidity view; branch-level governance doesn't change cash flows.
   const statementInputs = statementAssumptions(fork);
+  const a = project(baseline, branchA.scenario, branchA.governanceScore, statementInputs);
+  const b = project(baseline, branchB.scenario, branchB.governanceScore, statementInputs);
+  // Branch-level governance doesn't change cash flows.
   const liquidityA = liquidityAlerts(buildStatements(baseline, branchA.scenario, statementInputs));
   const liquidityB = liquidityAlerts(buildStatements(baseline, branchB.scenario, statementInputs));
 
@@ -77,21 +78,20 @@ export function ForkTheFuture() {
           </CardHeader>
           <CardContent className="grid gap-6">
             <SliderRow
-              label="EBITDA growth"
-              hint="Annual growth in operating earnings"
+              label="Revenue growth"
+              hint="Margins held, so EBITDA grows alike"
               value={fork.assumptions.ebitdaGrowth}
               range={ASSUMPTION_RANGES.ebitdaGrowth}
               display={`${formatSignedPercent(fork.assumptions.ebitdaGrowth)}/yr`}
               onChange={(ebitdaGrowth) => setFork({ assumptions: { ...fork.assumptions, ebitdaGrowth } })}
             />
-            <SliderRow
-              label="Cash conversion"
-              hint="EBITDA left after taxes, capex and working capital"
-              value={fork.assumptions.cashConversion}
-              range={ASSUMPTION_RANGES.cashConversion}
-              display={formatPercent(fork.assumptions.cashConversion)}
-              onChange={(cashConversion) => setFork({ assumptions: { ...fork.assumptions, cashConversion } })}
-            />
+            <p className="text-sm text-muted-foreground">
+              Tax, capex, working capital and debt repayment come from the{" "}
+              <Link href="/simulator#financial-model-heading" className="text-foreground underline underline-offset-4">
+                three-statement model
+              </Link>
+              , so both branches use the same cash flows as the liquidity alerts.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -100,7 +100,7 @@ export function ForkTheFuture() {
         <CardHeader>
           <CardTitle>Shareholder value over time</CardTitle>
           <CardDescription>
-            Equity, minus expected governance losses, plus all cash paid out to date.
+            Owners’ equity, minus the Expected Loss from governance, plus all cash paid out to date.
           </CardDescription>
           {!identical && (
             <CardAction>

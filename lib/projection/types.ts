@@ -2,10 +2,8 @@ import type { OperatingAssumptions } from "../statements/model";
 
 /** Assumptions shared by both branches. Fractions (0.04 = 4%). */
 export interface ProjectionAssumptions {
-  /** Annual EBITDA growth. */
+  /** Annual revenue growth; margins are held, so EBITDA grows alike. */
   ebitdaGrowth: number;
-  /** Share of EBITDA left after taxes, capex and working capital, before interest. */
-  cashConversion: number;
 }
 
 /** One year of a projected branch. Currency in USD millions. */
@@ -13,18 +11,26 @@ export interface YearPoint {
   year: number;
   ebitda: number;
   interest: number;
+  /** Levered free cash flow from the cash flow statement (after interest, tax, capex and working capital). */
   freeCashFlow: number;
+  /** Scheduled amortization plus the cash sweep. */
   debtPaydown: number;
+  /** Revolver drawn to cover a cash shortfall. */
+  borrowed: number;
   dividends: number;
   debt: number;
   enterpriseValue: number;
+  /** Enterprise value − debt; negative when underwater. */
   equityValue: number;
+  /** Equity value floored at zero (limited liability): what counts toward shareholder value. */
+  ownersEquity: number;
   /** Day-0 recap (or capital contributed, negative) plus all dividends to date. */
   cumulativeCash: number;
   /** Probability a governance crisis has struck by this year. */
   disruptionProbability: number;
+  /** Expected Loss: enterprise value × the maximum governance discount × the chance of a crisis by this year. */
   expectedGovernanceLoss: number;
-  /** Equity − expected governance loss + cumulative cash. The headline number. */
+  /** Owners' equity − Expected Loss + cumulative cash. The headline number. */
   shareholderValue: number;
   founderWealth: number;
   nextGenWealth: number;

@@ -1,4 +1,4 @@
-import { PROJECTION_YEARS } from "../projection/model";
+import { PROJECTION_YEARS } from "../projection/horizon";
 import { COVERAGE_CRITICAL, LEVERAGE_CRITICAL } from "../simulator/engine";
 import type { Baseline, Scenario } from "../simulator/types";
 import { buildStatements, type StatementAssumptions } from "./model";

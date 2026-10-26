@@ -1,20 +1,24 @@
 import { MAX_GOVERNANCE_DISCOUNT } from "../governance/model";
-import { BASELINE_LIMITS, clamp } from "../simulator/defaults";
+import { clamp } from "../simulator/defaults";
 import { COVERAGE_CRITICAL, simulate } from "../simulator/engine";
 import type { Baseline, Scenario } from "../simulator/types";
+import { DEFAULT_STATEMENT_ASSUMPTIONS, buildStatements, type StatementAssumptions } from "../statements/model";
 import type { ProjectionAssumptions, YearPoint } from "./types";
 
-export const PROJECTION_YEARS = 10;
-export const HORIZONS = [1, 3, 5, 10] as const;
+export { HORIZONS, PROJECTION_YEARS } from "./horizon";
 
 export const DEFAULT_ASSUMPTIONS: ProjectionAssumptions = {
   ebitdaGrowth: 0.04,
-  cashConversion: 0.5,
 };
 
 export const ASSUMPTION_RANGES = {
   ebitdaGrowth: { min: -0.1, max: 0.15, step: 0.01 },
-  cashConversion: { min: 0.1, max: 0.9, step: 0.05 },
+};
+
+/** The default statement inputs at the default growth rate. */
+export const DEFAULT_PROJECTION_INPUTS: StatementAssumptions = {
+  ...DEFAULT_STATEMENT_ASSUMPTIONS,
+  revenueGrowth: DEFAULT_ASSUMPTIONS.ebitdaGrowth,
 };
 
 /** Annual chance of a governance crisis at a Governance Debt Score of 100. */
@@ -26,98 +30,56 @@ export function annualDisruptionProbability(governanceScore: number): number {
 }
 
 /**
- * Projects a decision forward year by year. Year 0 is the state immediately
- * after the decision (`simulate()`); each later year grows EBITDA, services
- * debt from free cash flow, pays out the rest, and compounds governance risk.
+ * Projects a decision forward year by year: the three-statement model
+ * (`buildStatements()`, the same cash flows and debt the liquidity alerts
+ * read) with the governance overlay on top. Year 0 is the state immediately
+ * after the decision; each later year compounds the chance of a governance
+ * crisis and its Expected Loss.
  */
 export function project(
   baseline: Baseline,
   scenario: Scenario,
   governanceScore: number,
-  rawAssumptions: ProjectionAssumptions,
+  assumptions: StatementAssumptions,
 ): YearPoint[] {
-  const day0 = simulate(baseline, scenario);
-  const growth = clamp(rawAssumptions.ebitdaGrowth, ASSUMPTION_RANGES.ebitdaGrowth);
-  const conversion = clamp(rawAssumptions.cashConversion, ASSUMPTION_RANGES.cashConversion);
-  const rate = clamp(baseline.interestRate, BASELINE_LIMITS.interestRate);
+  const model = buildStatements(baseline, scenario, assumptions);
+  const { ownership } = simulate(baseline, scenario);
   const annualRisk = annualDisruptionProbability(governanceScore);
-  const { ownership, effectiveMultiple } = day0;
 
-  const point = (
-    year: number,
-    values: Pick<YearPoint, "ebitda" | "interest" | "freeCashFlow" | "debtPaydown" | "dividends" | "debt" | "cumulativeCash">,
-    previousDebt: number,
-  ): YearPoint => {
-    const enterpriseValue = Math.max(values.ebitda, 0) * effectiveMultiple;
-    const equityValue = enterpriseValue - values.debt;
+  let cumulativeCash = model.day0Distribution;
+  return model.years.map((y, i) => {
+    const previousDebt = i > 0 ? model.years[i - 1].debt : y.debt;
+    if (i > 0) cumulativeCash += y.dividends;
+    const enterpriseValue = Math.max(y.enterpriseValue, 0);
     // Limited liability, as in simulate(): underwater equity is worth nothing, not a debt the owners repay.
-    const ownersEquity = Math.max(equityValue, 0);
-    const disruptionProbability = 1 - (1 - annualRisk) ** year;
+    const ownersEquity = Math.max(y.equityValue, 0);
+    const disruptionProbability = 1 - (1 - annualRisk) ** y.year;
     const expectedGovernanceLoss = enterpriseValue * MAX_GOVERNANCE_DISCOUNT * disruptionProbability;
-    const shareholderValue = ownersEquity - expectedGovernanceLoss + values.cumulativeCash;
-    const interestCoverage = values.interest > 0 ? values.ebitda / values.interest : null;
+    const shareholderValue = ownersEquity - expectedGovernanceLoss + cumulativeCash;
     return {
-      year,
-      ...values,
+      year: y.year,
+      ebitda: y.ebitda,
+      interest: y.interest,
+      freeCashFlow: y.freeCashFlow,
+      debtPaydown: y.mandatoryRepayment + y.cashSweep,
+      borrowed: y.revolverDraw,
+      dividends: y.dividends,
+      debt: y.debt,
       enterpriseValue,
-      equityValue,
+      equityValue: y.equityValue,
+      ownersEquity,
+      cumulativeCash,
       disruptionProbability,
       expectedGovernanceLoss,
       shareholderValue,
       founderWealth: ownership.founder * shareholderValue,
       nextGenWealth: ownership.nextGen * shareholderValue,
-      interestCoverage,
+      interestCoverage: y.interestCoverage,
       flags: {
-        underwater: equityValue <= 0,
-        thinCoverage: interestCoverage !== null && interestCoverage < COVERAGE_CRITICAL,
-        debtGrowing: values.debt > previousDebt + 1e-9,
+        underwater: y.equityValue <= 0,
+        thinCoverage: y.interestCoverage !== null && y.interestCoverage < COVERAGE_CRITICAL,
+        debtGrowing: y.debt > previousDebt + 1e-9,
       },
     };
-  };
-
-  const points: YearPoint[] = [
-    point(
-      0,
-      {
-        ebitda: day0.adjustedEbitda,
-        interest: day0.interestExpense,
-        freeCashFlow: 0,
-        debtPaydown: 0,
-        dividends: 0,
-        debt: day0.totalDebt,
-        cumulativeCash: day0.netDistribution,
-      },
-      day0.totalDebt,
-    ),
-  ];
-
-  for (let year = 1; year <= PROJECTION_YEARS; year++) {
-    const prev = points[year - 1];
-    // Losses don't compound with growth; a loss-making business stays flat.
-    const ebitda = prev.ebitda > 0 ? prev.ebitda * (1 + growth) : prev.ebitda;
-    const interest = prev.debt * rate;
-    // Cash conversion scales profits; a loss is a cash loss in full.
-    const freeCashFlow = (ebitda > 0 ? ebitda * conversion : ebitda) - interest;
-    const debtPaydown = freeCashFlow >= 0 ? Math.min(freeCashFlow, prev.debt) : 0;
-    const dividends = freeCashFlow >= 0 ? freeCashFlow - debtPaydown : 0;
-    // A cash shortfall is borrowed.
-    const debt = freeCashFlow >= 0 ? prev.debt - debtPaydown : prev.debt - freeCashFlow;
-    points.push(
-      point(
-        year,
-        {
-          ebitda,
-          interest,
-          freeCashFlow,
-          debtPaydown,
-          dividends,
-          debt,
-          cumulativeCash: prev.cumulativeCash + dividends,
-        },
-        prev.debt,
-      ),
-    );
-  }
-
-  return points;
+  });
 }

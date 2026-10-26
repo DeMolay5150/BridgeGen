@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BEST_PRACTICE_GOVERNANCE, DEMO_GOVERNANCE } from "../governance/model";
-import { DEFAULT_ASSUMPTIONS, project } from "../projection/model";
+import { DEFAULT_PROJECTION_INPUTS, project } from "../projection/model";
 import { runShock } from "../redteam/shocks";
 import { scoreScenario } from "../simulator/alignment";
 import { DEMO_BASELINE, neutralScenario } from "../simulator/defaults";
@@ -156,7 +156,7 @@ describe("governance explainer", () => {
     expect(text(e)[3]).toBe(
       "Biggest gaps: delegation of authority documented (12 pts, $3.5M); independent directors (12 pts, $3.5M); incapacitation plan (11 pts, $3.2M).",
     );
-    expect(text(e)).toContain("Value at risk: $96.0M × 30% × 78/100 = $22.5M.");
+    expect(text(e)).toContain("Value at Risk: $96.0M × 30% × 78/100 = $22.5M.");
   });
 
   it("reports no gaps at best practice", () => {
@@ -165,8 +165,8 @@ describe("governance explainer", () => {
 });
 
 describe("fork explainer", () => {
-  const asIs = project(base, neutral, 78, DEFAULT_ASSUMPTIONS);
-  const fixed = project(base, neutral, 0, DEFAULT_ASSUMPTIONS);
+  const asIs = project(base, neutral, 78, DEFAULT_PROJECTION_INPUTS);
+  const fixed = project(base, neutral, 0, DEFAULT_PROJECTION_INPUTS);
   const labels = { a: "Today", b: "Today + governance fixed" };
 
   it("splits the 10-year lead into equity, governance losses and cash", () => {
@@ -175,6 +175,26 @@ describe("fork explainer", () => {
     expect(e.title).toBe("Why is B ahead at year 10?");
     expect(text(e)[0]).toContain("(+$0.0M for B)"); // same scenario: same equity
     expect(text(e)[3]).toContain(`is ahead by ${formatMoney(lead)}`);
+  });
+
+  it("reconciles A's Expected Loss with Value at Risk", () => {
+    const step = text(explainForkLead(asIs, fixed, labels, 10)).find((t) => t.startsWith("A's Expected Loss"));
+    expect(step).toContain(
+      `× 30% maximum governance discount × ${(asIs[10].disruptionProbability * 100).toFixed(1)}% chance of a crisis by year 10 = ${formatMoney(asIs[10].expectedGovernanceLoss)}`,
+    );
+    expect(step).toContain("Value at Risk uses the same discount scaled by the Governance Debt Score");
+  });
+
+  it("splits the lead exactly when one branch is underwater", () => {
+    const deep = project({ ...base, multiple: 3 }, { ...neutral, leverage: 6 }, 78, DEFAULT_PROJECTION_INPUTS);
+    expect(deep[1].equityValue).toBeLessThan(0);
+    expect(text(explainForkLead(deep, fixed, labels, 1))[0]).toContain("equity below zero counts as zero");
+    const lead = fixed[1].shareholderValue - deep[1].shareholderValue;
+    const parts =
+      fixed[1].ownersEquity - deep[1].ownersEquity -
+      (fixed[1].expectedGovernanceLoss - deep[1].expectedGovernanceLoss) +
+      (fixed[1].cumulativeCash - deep[1].cumulativeCash);
+    expect(parts).toBeCloseTo(lead, 9);
   });
 
   it("calls identical branches even", () => {

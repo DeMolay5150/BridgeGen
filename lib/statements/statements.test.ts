@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseBaselinePaste, toTsv } from "../clipboard/tsv";
 import { irr } from "../finance";
-import { DEFAULT_ASSUMPTIONS, project } from "../projection/model";
+import { project } from "../projection/model";
 import { DEMO_BASELINE, neutralScenario } from "../simulator/defaults";
 import { simulate } from "../simulator/engine";
 import type { Baseline, Scenario } from "../simulator/types";
@@ -40,8 +40,8 @@ describe("three-statement model", () => {
     expect(y0.enterpriseValue).toBeCloseTo(day0.enterpriseValue, 9);
   });
 
-  it("grows EBITDA exactly as Fork the Future does at the same growth rate", () => {
-    const fork = project(base, neutral, 0, { ...DEFAULT_ASSUMPTIONS, ebitdaGrowth: 0.04 });
+  it("is exactly what Fork the Future projects", () => {
+    const fork = project(base, neutral, 0, assumptions);
     const { years } = buildStatements(base, neutral, assumptions);
     years.forEach((y, i) => expect(y.ebitda).toBeCloseTo(fork[i].ebitda, 9));
   });

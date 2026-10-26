@@ -41,7 +41,7 @@ export function explainGovernance(answers: GovernanceAnswers, enterpriseValue: n
       },
       { text: `Total: ${points(g.score)} points = a score of ${Math.round(g.score)}/100.` },
       {
-        text: `Value at risk: ${formatMoney(Math.max(enterpriseValue, 0))} × ${formatPercent(MAX_GOVERNANCE_DISCOUNT)} × ${points(g.score)}/100 = ${formatMoney(atRisk)}.`,
+        text: `Value at Risk: ${formatMoney(Math.max(enterpriseValue, 0))} × ${formatPercent(MAX_GOVERNANCE_DISCOUNT)} × ${points(g.score)}/100 = ${formatMoney(atRisk)}.`,
         tone: tone(g.score / 100),
       },
     ],

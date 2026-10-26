@@ -189,7 +189,7 @@ function assessRisks(r: {
       id: "governance-debt",
       severity: critical ? "critical" : "caution",
       title: critical ? "Governance debt critical" : "Governance debt building",
-      detail: `Governance scores ${Math.round(r.governance)}/100; informal authority, board and voting rules put ${formatMoney(r.governanceDebt)} of value at risk.`,
+      detail: `Governance scores ${Math.round(r.governance)}/100; informal authority, board and voting rules put ${formatMoney(r.governanceDebt)} of Value at Risk.`,
     });
   }
 

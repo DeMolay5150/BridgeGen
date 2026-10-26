@@ -1,97 +1,69 @@
 import { describe, expect, it } from "vitest";
+import { MAX_GOVERNANCE_DISCOUNT } from "../governance/model";
 import { DEMO_BASELINE, neutralScenario } from "../simulator/defaults";
+import { simulate } from "../simulator/engine";
 import type { Baseline, Scenario } from "../simulator/types";
+import { buildStatements, type StatementAssumptions } from "../statements/model";
 import { resolveBranch } from "./branches";
-import { DEFAULT_ASSUMPTIONS, annualDisruptionProbability, project } from "./model";
-import type { ProjectionAssumptions, YearPoint } from "./types";
+import { DEFAULT_PROJECTION_INPUTS, annualDisruptionProbability, project } from "./model";
+import type { YearPoint } from "./types";
 
 const base = DEMO_BASELINE;
 const neutral = neutralScenario(base);
+const inputs = DEFAULT_PROJECTION_INPUTS;
 const run = (
   scenario: Partial<Scenario> = {},
   governance = 0,
-  assumptions: Partial<ProjectionAssumptions> = {},
+  assumptions: Partial<StatementAssumptions> = {},
   baseline: Partial<Baseline> = {},
-) =>
-  project({ ...base, ...baseline }, { ...neutral, ...scenario }, governance, {
-    ...DEFAULT_ASSUMPTIONS,
-    ...assumptions,
-  });
+) => project({ ...base, ...baseline }, { ...neutral, ...scenario }, governance, { ...inputs, ...assumptions });
 
-// Expected values are hand-calculated from the rules in model.ts.
-describe("project: demo company, today", () => {
-  const years = run({}, 78);
-
+describe("project: a view over the three statements", () => {
   it("returns years 0 through 10", () => {
-    expect(years.map((y) => y.year)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(run().map((y) => y.year)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 
   it("starts from the day-0 simulation", () => {
-    expect(years[0]).toMatchObject({ ebitda: 12, debt: 6, enterpriseValue: 96, equityValue: 90, cumulativeCash: 0 });
-    expect(years[0].expectedGovernanceLoss).toBe(0);
-    expect(years[0].shareholderValue).toBe(90);
+    const [y0] = run({}, 78);
+    expect(y0).toMatchObject({ ebitda: 12, debt: 6, enterpriseValue: 96, equityValue: 90, ownersEquity: 90, cumulativeCash: 0 });
+    expect(y0.expectedGovernanceLoss).toBe(0);
+    expect(y0.shareholderValue).toBe(90);
   });
 
-  it("pays down debt from year-1 free cash flow", () => {
-    const y1 = years[1];
-    expect(y1.ebitda).toBeCloseTo(12.48);
-    expect(y1.interest).toBeCloseTo(0.48);
-    expect(y1.freeCashFlow).toBeCloseTo(5.76); // 12.48 × 50% − 0.48
-    expect(y1.debtPaydown).toBeCloseTo(5.76);
-    expect(y1.debt).toBeCloseTo(0.24);
-    expect(y1.dividends).toBe(0);
-    expect(y1.disruptionProbability).toBeCloseTo(0.0624);
-    expect(y1.expectedGovernanceLoss).toBeCloseTo(1.86896, 4); // 99.84 × 30% × 6.24%
-    expect(y1.shareholderValue).toBeCloseTo(97.73104, 4);
+  // The R1 finding: the chart and the liquidity alerts beside it must describe the same company.
+  for (const leverage of [0, 3, 5.5]) {
+    it(`carries the statements' debt, cash flows and dividends unchanged at ${leverage}x`, () => {
+      const scenario = { ...neutral, leverage };
+      const points = project(base, scenario, 0, inputs);
+      const { years, day0Distribution } = buildStatements(base, scenario, inputs);
+      let paid = day0Distribution;
+      points.forEach((p, i) => {
+        const y = years[i];
+        if (i > 0) paid += y.dividends;
+        expect(p.debt).toBe(y.debt);
+        expect(p.interest).toBe(y.interest);
+        expect(p.freeCashFlow).toBe(y.freeCashFlow);
+        expect(p.dividends).toBe(y.dividends);
+        expect(p.debtPaydown).toBeCloseTo(y.mandatoryRepayment + y.cashSweep, 12);
+        expect(p.borrowed).toBe(y.revolverDraw);
+        expect(p.equityValue).toBe(y.equityValue);
+        expect(p.cumulativeCash).toBeCloseTo(paid, 12);
+      });
+    });
+  }
+
+  it("flags debt growing only in years the revolver is drawn", () => {
+    const points = run({ leverage: 6 }, 0, { revenueGrowth: -0.1 });
+    expect(points.some((p) => p.flags.debtGrowing)).toBe(true);
+    points.slice(1).forEach((p) => {
+      if (p.flags.debtGrowing) expect(p.borrowed).toBeGreaterThan(0);
+    });
   });
 
-  it("clears the debt in year 2 and pays out the rest", () => {
-    const y2 = years[2];
-    expect(y2.debtPaydown).toBeCloseTo(0.24);
-    expect(y2.dividends).toBeCloseTo(6.2304);
-    expect(y2.debt).toBeCloseTo(0);
-    expect(y2.interestCoverage).toBeCloseTo(12.9792 / 0.0192);
-  });
-
-  it("compounds growth and governance risk to year 10", () => {
-    const y10 = years[10];
-    expect(y10.ebitda).toBeCloseTo(12 * 1.04 ** 10);
-    expect(y10.disruptionProbability).toBeCloseTo(1 - 0.9376 ** 10);
-    expect(y10.disruptionProbability).toBeCloseTo(0.475, 3);
-    expect(y10.interestCoverage).toBeNull();
-  });
-});
-
-describe("project: mechanics", () => {
-  it("never lets debt go negative", () => {
-    for (const y of run({ leverage: 0.25 }, 0, { cashConversion: 0.9 })) {
-      expect(y.debt).toBeGreaterThanOrEqual(0);
+  it("adds up: owners' equity − Expected Loss + cash paid out", () => {
+    for (const p of run({ leverage: 4 }, 78)) {
+      expect(p.shareholderValue).toBeCloseTo(p.ownersEquity - p.expectedGovernanceLoss + p.cumulativeCash, 9);
     }
-  });
-
-  it("borrows to cover negative free cash flow", () => {
-    const [y0, y1] = run({ leverage: 6 }, 0, { cashConversion: 0.1 });
-    expect(y0.debt).toBe(72);
-    expect(y1.freeCashFlow).toBeCloseTo(1.248 - 5.76);
-    expect(y1.debt).toBeCloseTo(76.512);
-    expect(y1.flags.debtGrowing).toBe(true);
-    // Coverage is EBITDA-based: 12.48 / 5.76 = 2.17x, just above the 2x threshold.
-    expect(y1.interestCoverage).toBeCloseTo(12.48 / 5.76);
-    expect(y1.flags.thinCoverage).toBe(false);
-  });
-
-  it("flags thin coverage once EBITDA no longer covers interest twice", () => {
-    const years = run({ leverage: 6 }, 0, { ebitdaGrowth: -0.1, cashConversion: 0.1 });
-    const firstThin = years.find((y) => y.flags.thinCoverage);
-    expect(firstThin).toBeDefined();
-    expect(firstThin!.interestCoverage!).toBeLessThan(2);
-  });
-
-  it("keeps a loss-making business flat instead of compounding losses", () => {
-    const years = run({}, 0, { ebitdaGrowth: 0.15 }, { ebitda: -2 });
-    expect(years[10].ebitda).toBe(-2);
-    expect(years[10].enterpriseValue).toBe(0);
-    expect(years[10].flags.underwater).toBe(true);
   });
 
   it("leaves day-0 shareholder value unchanged by leverage alone", () => {
@@ -101,9 +73,7 @@ describe("project: mechanics", () => {
   });
 
   it("makes a dividend recap cost value over time through interest", () => {
-    const today = run();
-    const recap = run({ leverage: 3 });
-    expect(recap[10].shareholderValue).toBeLessThan(today[10].shareholderValue);
+    expect(run({ leverage: 3 })[10].shareholderValue).toBeLessThan(run()[10].shareholderValue);
   });
 
   it("splits shareholder value by post-transfer ownership", () => {
@@ -111,9 +81,24 @@ describe("project: mechanics", () => {
     expect(y5.founderWealth).toBeCloseTo(0.4 * y5.shareholderValue);
     expect(y5.nextGenWealth).toBeCloseTo(0.4 * y5.shareholderValue);
   });
+
+  it("never lets underwater equity reduce what the owners already took out (limited liability)", () => {
+    const points = project({ ...base, multiple: 3 }, { ...neutral, leverage: 5 }, 0, inputs);
+    const day0 = points[0];
+    expect(day0.equityValue).toBeLessThan(0);
+    expect(day0.ownersEquity).toBe(0);
+    expect(day0.shareholderValue).toBeCloseTo(day0.cumulativeCash);
+  });
+
+  it("values a loss-making business at zero", () => {
+    const years = run({}, 0, { revenueGrowth: 0.15 }, { ebitda: -2 });
+    expect(years[10].ebitda).toBeLessThan(0);
+    expect(years[10].enterpriseValue).toBe(0);
+    expect(years[10].flags.underwater).toBe(true);
+  });
 });
 
-describe("governance risk", () => {
+describe("governance overlay (Expected Loss)", () => {
   it("scales the annual disruption probability with the score", () => {
     expect(annualDisruptionProbability(0)).toBe(0);
     expect(annualDisruptionProbability(78)).toBeCloseTo(0.0624);
@@ -121,10 +106,19 @@ describe("governance risk", () => {
     expect(annualDisruptionProbability(500)).toBeCloseTo(0.08);
   });
 
-  it("removes expected governance loss when governance is fixed", () => {
+  it("is enterprise value × the maximum discount × the chance of a crisis by that year", () => {
+    const years = run({}, 78);
+    for (const y of years) {
+      expect(y.disruptionProbability).toBeCloseTo(1 - 0.9376 ** y.year, 12);
+      expect(y.expectedGovernanceLoss).toBeCloseTo(y.enterpriseValue * MAX_GOVERNANCE_DISCOUNT * y.disruptionProbability, 12);
+    }
+    expect(years[10].disruptionProbability).toBeCloseTo(0.475, 3);
+  });
+
+  it("is zero when governance is fixed", () => {
     const fixed = resolveBranch({ source: "today", fixGovernance: true }, { baseline: base, scenario: neutral, governanceScore: 78 });
     expect(fixed.governanceScore).toBe(0);
-    for (const y of project(base, fixed.scenario, fixed.governanceScore, DEFAULT_ASSUMPTIONS)) {
+    for (const y of project(base, fixed.scenario, fixed.governanceScore, inputs)) {
       expect(y.expectedGovernanceLoss).toBe(0);
     }
   });
@@ -136,6 +130,13 @@ describe("governance risk", () => {
     expect(gap(1)).toBeGreaterThan(0);
     expect(gap(10)).toBeGreaterThan(gap(5));
     expect(gap(5)).toBeGreaterThan(gap(1));
+  });
+
+  it("uses the simulator's ownership split", () => {
+    const scenario = { ...neutral, equityTransfer: 0.3 };
+    const { ownership } = simulate(base, scenario);
+    const y3 = project(base, scenario, 78, inputs)[3];
+    expect(y3.nextGenWealth).toBeCloseTo(ownership.nextGen * y3.shareholderValue, 12);
   });
 });
 
@@ -170,27 +171,10 @@ describe("project: hostile inputs", () => {
         { ...base, ebitda: x, interestRate: x, multiple: x },
         { ...neutral, leverage: x },
         x,
-        { ebitdaGrowth: x, cashConversion: x },
+        { ...inputs, revenueGrowth: x, taxRate: x, capex: x },
       );
       expect(years).toHaveLength(11);
       expect(years.every(finite)).toBe(true);
     }
-  });
-});
-
-describe("project: edge cases from the October architecture review", () => {
-  it("treats a loss as a cash loss in full, not scaled down by cash conversion", () => {
-    const loss = project({ ...base, ebitda: -10, existingDebt: 0 }, neutralScenario({ ...base, ebitda: -10 }), 0, {
-      ...DEFAULT_ASSUMPTIONS,
-      cashConversion: 0.1,
-    });
-    expect(loss[1].freeCashFlow).toBeCloseTo(-10);
-  });
-
-  it("never lets underwater equity reduce what the owners already took out (limited liability)", () => {
-    const points = project({ ...base, multiple: 3 }, { ...neutral, leverage: 5 }, 0, DEFAULT_ASSUMPTIONS);
-    const day0 = points[0];
-    expect(day0.equityValue).toBeLessThan(0);
-    expect(day0.shareholderValue).toBeCloseTo(day0.cumulativeCash);
   });
 });

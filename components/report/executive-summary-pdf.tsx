@@ -240,7 +240,7 @@ function GovernancePage({ r, watermark }: { r: ReportData; watermark: Watermark 
           </View>
         ))}
       </View>
-      <Text style={s.note}>{t(`Value at risk: ${g.atRisk}.`)}</Text>
+      <Text style={s.note}>{t(`Value at Risk: ${g.atRisk}.`)}</Text>
     </SectionPage>
   );
 }

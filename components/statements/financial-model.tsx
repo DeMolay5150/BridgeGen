@@ -151,11 +151,11 @@ export function FinancialModel() {
           <CardHeader>
             <CardTitle>Operating assumptions</CardTitle>
             <CardDescription>
-              Growth is shared with{" "}
+              These inputs, growth included, also drive{" "}
               <Link href="/fork" className="text-foreground underline underline-offset-4">
                 Fork the Future
               </Link>
-              . The others apply to this view only and aren&apos;t saved.
+              , and they&apos;re saved with the company.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-5">

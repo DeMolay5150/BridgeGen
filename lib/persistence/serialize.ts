@@ -59,7 +59,8 @@ const forkSchema = z
   .object({
     a: branch,
     b: branch,
-    assumptions: z.object({ ebitdaGrowth: finite, cashConversion: finite }).partial(),
+    // Older rows also carry cashConversion; Fork now reads the statements, so it is dropped.
+    assumptions: z.object({ ebitdaGrowth: finite }).partial(),
     // Range-clamped by buildStatements, so only finiteness is checked here.
     statements: z
       .object({

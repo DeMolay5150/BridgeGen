@@ -52,7 +52,7 @@ describe("buildReport", () => {
       { label: "Equity value", value: "$90.0M" },
       { label: "Interest coverage", value: "25.0x" },
       { label: "Governance debt", value: "78/100" },
-      { label: "Value at risk", value: "$22.5M" },
+      { label: "Value at Risk", value: "$22.5M" },
     ]);
     expect(r.capital.kpis.every((k) => k.change === "–")).toBe(true);
     expect(r.redTeam.shocks).toHaveLength(4);

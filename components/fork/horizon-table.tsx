@@ -35,7 +35,7 @@ const ROWS: MetricRow[] = [
   { label: "Debt", kind: "money", value: (p) => p.debt, higherIsBetter: false },
   { label: "Equity value", kind: "money", value: (p) => p.equityValue, higherIsBetter: true },
   { label: "Cash paid out to date", kind: "money", value: (p) => p.cumulativeCash, higherIsBetter: true },
-  { label: "Expected governance loss", kind: "money", value: (p) => p.expectedGovernanceLoss, higherIsBetter: false },
+  { label: "Expected Loss", kind: "money", value: (p) => p.expectedGovernanceLoss, higherIsBetter: false },
   { label: "Chance of governance crisis", kind: "percent", value: (p) => p.disruptionProbability, higherIsBetter: false },
   { label: "Interest coverage", kind: "multiple", value: (p) => p.interestCoverage, higherIsBetter: true },
 ];
