@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionSync } from "@/components/session-sync";
+import { SiteAnalytics } from "@/components/site-analytics";
 import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
 
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div id="content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
           {children}
         </div>
+        <SiteAnalytics />
       </body>
     </html>
   );
